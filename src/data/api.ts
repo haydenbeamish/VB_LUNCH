@@ -8,8 +8,9 @@ import type {
   LunchContribution,
 } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "";
-const API_BASE = `${API_URL}/api/vb`;
+// Always use relative URLs — the dev Vite proxy and production Express server
+// both forward /api/vb/* to https://api.laserbeamcapital.com
+const API_BASE = "/api/vb";
 
 const baseHeaders: HeadersInit = {
   "Content-Type": "application/json",
