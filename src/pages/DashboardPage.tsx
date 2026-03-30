@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Trophy, ChevronRight, Zap, Newspaper, Target, Flame, CalendarDays, RefreshCw } from "lucide-react";
+import { Trophy, ChevronRight, Zap, Newspaper, Target, Flame, CalendarDays } from "lucide-react";
 import { useNewsFeed } from "../hooks/useNewsFeed";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useEvents } from "../hooks/useEvents";
@@ -16,7 +16,7 @@ import { getEventDisplayDate, formatEventDate } from "../lib/dates";
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { feed, loading, error, retry } = useNewsFeed();
+  const { feed, loading, error } = useNewsFeed();
   const { entries: leaderboard, loading: lbLoading } = useLeaderboard();
   const {
     allEvents,
