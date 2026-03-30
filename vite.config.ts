@@ -19,7 +19,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vb': {
-        target: 'https://laserbeamnode.replit.app',
+        target: 'https://api.laserbeamcapital.com',
         changeOrigin: true,
       },
     },

@@ -18,7 +18,7 @@ A web-based sports prediction leaderboard app ("Betting On Sports Fun") for a gr
 
 - `src/pages/` - Top-level route pages (Dashboard, Leaderboard, Events, Player, Admin)
 - `src/components/` - Reusable UI components (layout, leaderboard, feed, ui)
-- `src/data/api.ts` - API layer for external data backend (uses `VITE_API_URL` env var or defaults to `https://laserbeamnode.replit.app`)
+- `src/data/api.ts` - API layer for external data backend (uses `VITE_API_URL` env var or defaults to `https://api.laserbeamcapital.com`)
 - `src/data/ai.ts` - AI API calls (to local Express server at `/api/ai`)
 - `src/hooks/` - Custom React hooks for data fetching
 - `src/types/` - TypeScript interfaces
@@ -43,6 +43,6 @@ npm run dev:all   # Runs both Vite (port 5000) and Express server (port 3000) co
 
 ## Environment Variables
 
-- `VITE_API_URL` - External data backend URL (optional, defaults to `https://laserbeamnode.replit.app`)
+- `VITE_API_URL` - External data backend URL (optional, defaults to `https://api.laserbeamcapital.com`)
 - `OPENROUTER_API_KEY` - API key for OpenRouter AI banter generation
 - `BRAVE_WEBSEARCH_API` - API key for Brave Search event context

@@ -181,7 +181,7 @@ app.post("/api/ai/chat", async (req, res) => {
 
 // --- Data API proxy (forwards /api/vb/* to the backend service) ---
 
-const DATA_API_URL = process.env.DATA_API_URL || "https://laserbeamnode.replit.app";
+const DATA_API_URL = process.env.DATA_API_URL || "https://api.laserbeamcapital.com";
 
 app.use("/api/vb", async (req, res) => {
   const target = `${DATA_API_URL}/api/vb${req.path}${req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`;
