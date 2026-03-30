@@ -32,7 +32,7 @@ interface ResultsData {
 function useResultsGrid() {
   return useQuery<ResultsData>({
     queryKey: ["results-grid"],
-    queryFn: () => getResultsGrid() as Promise<ResultsData>,
+    queryFn: () => getResultsGrid() as unknown as Promise<ResultsData>,
   });
 }
 
