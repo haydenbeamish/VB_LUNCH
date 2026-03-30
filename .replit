@@ -43,6 +43,5 @@ externalPort = 3001
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "cd BOSF && npm install && npm run build"]
-run = ["sh", "-c", "cd BOSF && node server.js"]
-publicDir = "BOSF/dist"
+build = ["sh", "-c", "npm install & npm run build"]
+run = ["sh", "-c", "node server.js"]
