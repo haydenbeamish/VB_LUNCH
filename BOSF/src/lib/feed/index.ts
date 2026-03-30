@@ -26,25 +26,22 @@ export type { FeedItem, FeedItemType, BackendFeedItem } from "./types";
 export { normalizeBackendFeedItem } from "./normalize";
 
 /**
- * Lunch contributions table — maps leaderboard position (1-14) to the
+ * Lunch contributions table — maps leaderboard position (1-11) to the
  * dollar amount that person contributes to the group lunch.
- * Position 1 (leader) pays $0; position 14 (last) pays $325.
+ * Position 1 (leader) pays $0; position 11 (last) pays $500.
  */
 export const LUNCH_CONTRIBUTIONS: { position: number; contribution: number }[] = [
   { position: 1, contribution: 0 },
-  { position: 2, contribution: 5 },
-  { position: 3, contribution: 10 },
-  { position: 4, contribution: 15 },
-  { position: 5, contribution: 20 },
-  { position: 6, contribution: 25 },
-  { position: 7, contribution: 30 },
-  { position: 8, contribution: 40 },
-  { position: 9, contribution: 50 },
-  { position: 10, contribution: 65 },
-  { position: 11, contribution: 80 },
-  { position: 12, contribution: 110 },
-  { position: 13, contribution: 150 },
-  { position: 14, contribution: 325 },
+  { position: 2, contribution: 50 },
+  { position: 3, contribution: 100 },
+  { position: 4, contribution: 150 },
+  { position: 5, contribution: 200 },
+  { position: 6, contribution: 250 },
+  { position: 7, contribution: 300 },
+  { position: 8, contribution: 350 },
+  { position: 9, contribution: 400 },
+  { position: 10, contribution: 450 },
+  { position: 11, contribution: 500 },
 ];
 
 export function generateNewsFeed(

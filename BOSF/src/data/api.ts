@@ -8,17 +8,87 @@ import type {
   LunchContribution,
 } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api/competition";
-const API_KEY = import.meta.env.VITE_LASERBEAMNODE_API_KEY;
+const API_URL = import.meta.env.VITE_API_URL || "https://laserbeamnode.replit.app";
+const API_BASE = `${API_URL}/api/vb`;
 
 const baseHeaders: HeadersInit = {
   "Content-Type": "application/json",
-  ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
 };
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { headers: baseHeaders });
   if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+// --- Auth helpers ---
+
+const TOKEN_KEY = "vb_admin_token";
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function clearStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function login(password: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  const res = await fetch(`${API_BASE}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json();
+  if (data.success && data.token) {
+    localStorage.setItem(TOKEN_KEY, data.token);
+  }
+  return data;
+}
+
+export async function logout(): Promise<void> {
+  const token = getStoredToken();
+  if (token) {
+    await fetch(`${API_BASE}/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+  }
+  clearStoredToken();
+}
+
+export interface SetEventResultResponse {
+  success: boolean;
+  event: { id: number; event_name: string; correct_answer: string; status: string };
+  predictions: Array<{
+    participant_name: string;
+    prediction: string;
+    is_correct: boolean;
+    points_awarded: number;
+  }>;
+}
+
+export async function setEventResult(
+  eventId: number,
+  correctAnswer: string
+): Promise<SetEventResultResponse> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetch(`${API_BASE}/admin/events/${eventId}/result`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ correct_answer: correctAnswer }),
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStoredToken();
+      throw new Error("Session expired. Please log in again.");
+    }
+    throw new Error(`API error: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -140,6 +210,11 @@ export async function getParticipant(id: number): Promise<{
   return data as { participant: Participant; predictions: Prediction[]; total_points: number };
 }
 
+/** Raw /results response — preserves predictions keyed by participant name (for the grid view). */
+export async function getResultsGrid(): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>("/results");
+}
+
 export async function getResults(): Promise<{
   events: CompetitionEvent[];
   participants: Participant[];
@@ -200,7 +275,7 @@ export async function getStats(): Promise<StatsOverview> {
     getLeaderboard(),
   ]);
 
-  // Build the full lunch contributions table (14 positions) with participant names
+  // Build the full lunch contributions table (11 positions) with participant names
   const { LUNCH_CONTRIBUTIONS } = await import("../lib/feed/index");
   const lunch_contributions: LunchContribution[] = LUNCH_CONTRIBUTIONS.map((entry) => {
     const player = lb[entry.position - 1];
