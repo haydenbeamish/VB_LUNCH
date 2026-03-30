@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Trophy, ChevronRight, Zap, Newspaper, Target, Flame, CalendarDays } from "lucide-react";
+import { Trophy, ChevronRight, Zap, Newspaper, Target, Flame, CalendarDays, RefreshCw } from "lucide-react";
 import { useNewsFeed } from "../hooks/useNewsFeed";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { useEvents } from "../hooks/useEvents";
@@ -16,7 +16,7 @@ import { getEventDisplayDate, formatEventDate } from "../lib/dates";
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { feed, loading, error } = useNewsFeed();
+  const { feed, loading, error, retry } = useNewsFeed();
   const { entries: leaderboard, loading: lbLoading } = useLeaderboard();
   const {
     allEvents,
@@ -29,7 +29,15 @@ export function DashboardPage() {
         icon={<Zap size={28} />}
         title="Couldn't load dashboard"
         description="Something's gone wrong, mate. Give it another crack."
-      />
+      >
+        <button
+          onClick={retry}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+        >
+          <RefreshCw size={14} />
+          Retry
+        </button>
+      </EmptyState>
     );
   }
 
