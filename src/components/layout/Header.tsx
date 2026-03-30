@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { cn } from "../../lib/cn";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "VB Lunch",
+  "/": "Game Awn",
   "/news": "News Feed",
   "/events": "Events",
   "/leaderboard": "Leaderboard",
@@ -70,9 +70,9 @@ export function Header({ hidden = false }: { hidden?: boolean }) {
         ) : (
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
-              alt="BOSF"
-              className="w-8 h-8 rounded-lg object-contain"
+              src="/gameawn.png"
+              alt="Game Awn"
+              className="w-8 h-8 rounded-full object-cover"
             />
             {pageTitle && (
               <h1 className="font-display font-bold text-sm text-zinc-900">{pageTitle}</h1>

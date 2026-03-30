@@ -222,6 +222,7 @@ export function useNewsFeed() {
   const { data, isLoading: loading, error, refetch } = useQuery({
     queryKey: ["newsfeed"],
     queryFn: fetchNewsFeedData,
+    throwOnError: false,
   });
 
   // Track which data we've already enhanced to avoid re-running
@@ -255,12 +256,23 @@ export function useNewsFeed() {
     return () => { cancelled = true; };
   }, [data, dataKey, banterKey]);
 
+  // Only surface the error to callers when there is no data at all.
+  // If stale data is available, keep showing it even if a background refetch failed.
+  const hasData = Boolean(data);
+  const errorMessage = (!hasData && error)
+    ? (error instanceof Error ? error.message : String(error))
+    : null;
+
+  if (error) {
+    console.error("[useNewsFeed] query error:", error);
+  }
+
   return {
     feed: enhancedFeed ?? data?.feedItems ?? [],
     leaderboard: data?.leaderboard ?? [],
     events: data?.events ?? [],
     loading,
-    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+    error: errorMessage,
     retry: () => { refetch(); },
   };
 }
