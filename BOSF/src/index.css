@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surface system — light / white */
+  --color-surface-0: #ffffff;
+  --color-surface-50: #fafafa;
+  --color-surface-100: #f4f4f5;
+  --color-surface-200: #e4e4e7;
+  --color-surface-300: #d4d4d8;
+  --color-surface-400: #a1a1aa;
+  --color-surface-500: #71717a;
+  --color-surface-600: #52525b;
+  --color-surface-700: #3f3f46;
+
+  /* Accent - electric green */
+  --color-accent: #16a34a;
+  --color-accent-dim: #15803d;
+  --color-accent-glow: rgba(22, 163, 74, 0.12);
+  --color-accent-subtle: rgba(22, 163, 74, 0.06);
+
+  /* Gold */
+  --color-gold: #d97706;
+  --color-gold-dim: #b45309;
+  --color-gold-glow: rgba(217, 119, 6, 0.10);
+
+  /* Loss / red */
+  --color-loss: #dc2626;
+  --color-loss-dim: #b91c1c;
+  --color-loss-glow: rgba(220, 38, 38, 0.10);
+
+  /* Void / neutral */
+  --color-void: #6366f1;
+
+  /* Glass — now light glass */
+  --color-glass: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(0, 0, 0, 0.06);
+  --color-glass-hover: rgba(0, 0, 0, 0.03);
+
+  /* Fonts */
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  background-color: var(--color-surface-50);
+  color: #27272a;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html, body, #root {
+  height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent iOS rubber-band bounce on body */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  touch-action: manipulation;
+  /* Prevent iOS pull-to-refresh and overscroll on the outer shell */
+  position: fixed;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-300);
+  border-radius: 2px;
+}
+
+/* Utility classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.glass {
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(12px);
+}
+
+.glass-hover:hover {
+  background: var(--color-glass-hover);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px var(--color-accent-glow), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px var(--color-gold-glow), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706, #b45309);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, #22c55e, #16a34a, #15803d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar hidden for tabs */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area spacing */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-smooth-ios {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* GPU-accelerated header hide/show */
+.header-visible {
+  transform: translateY(0);
+  transition: transform 280ms cubic-bezier(0.25, 0.1, 0.25, 1), border-color 280ms ease;
+}
+
+.header-hidden {
+  transform: translateY(-100%);
+  transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), border-color 240ms ease;
+}
+
+/* Shimmer skeleton loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f4f4f5 0%,
+    #e4e4e7 25%,
+    #f4f4f5 50%,
+    #e4e4e7 75%,
+    #f4f4f5 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Prevent text selection on interactive elements */
+button, a, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Desktop side borders for the constrained layout */
+@media (min-width: 672px) {
+  .app-shell {
+    border-left: 1px solid var(--color-surface-200);
+    border-right: 1px solid var(--color-surface-200);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Wider desktop experience */
+@media (min-width: 768px) {
+  .app-shell {
+    max-width: 768px;
+  }
+}
