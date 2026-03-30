@@ -93,7 +93,7 @@ export function ResultsGridPage() {
         </p>
       </div>
 
-      <div className="overflow-x-auto px-2">
+      <div className="overflow-x-auto px-2 scroll-smooth-ios">
         <table className="text-xs border-collapse min-w-max">
           <thead>
             <tr>

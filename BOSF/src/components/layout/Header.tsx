@@ -5,11 +5,13 @@ import { useState, useCallback } from "react";
 import { cn } from "../../lib/cn";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "BOSF Punting",
+  "/": "VB Lunch",
   "/news": "News Feed",
   "/events": "Events",
   "/leaderboard": "Leaderboard",
   "/members": "Members",
+  "/results": "Results Grid",
+  "/admin": "Admin",
 };
 
 export function Header({ hidden = false }: { hidden?: boolean }) {
@@ -82,7 +84,7 @@ export function Header({ hidden = false }: { hidden?: boolean }) {
         <button
           onClick={handleRefresh}
           aria-label="Refresh data"
-          className="flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:bg-zinc-100 active:scale-95 transition-all"
+          className="flex items-center justify-center w-11 h-11 rounded-full text-zinc-400 hover:bg-zinc-100 active:scale-95 transition-all"
         >
           <RefreshCw size={16} className={cn(isRefreshing && "animate-spin")} />
         </button>

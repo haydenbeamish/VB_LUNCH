@@ -67,7 +67,7 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
             autoFocus
           />
           {error && (
@@ -290,7 +290,7 @@ function EventResultCard({
                       value={customAnswer}
                       onChange={(e) => setCustomAnswer(e.target.value)}
                       placeholder="Enter correct answer"
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-base mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       autoFocus
                     />
                   )}

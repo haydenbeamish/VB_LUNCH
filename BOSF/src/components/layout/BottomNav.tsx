@@ -22,7 +22,7 @@ export function BottomNav() {
     <nav
       className="shrink-0 border-t border-zinc-200/60 bg-white/95 backdrop-blur-xl pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.04)]"
     >
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}
@@ -30,7 +30,7 @@ export function BottomNav() {
             end={tab.to === "/"}
             className={({ isActive }) =>
               cn(
-                "relative flex flex-col items-center gap-0.5 px-5 py-2.5 rounded-xl min-w-[64px] min-h-[44px]",
+                "relative flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl min-w-[48px] min-h-[44px]",
                 isActive
                   ? "text-emerald-700"
                   : "text-zinc-400 active:text-zinc-600"
