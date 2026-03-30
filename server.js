@@ -179,6 +179,28 @@ app.post("/api/ai/chat", async (req, res) => {
   }
 });
 
+// --- Data API proxy (forwards /api/vb/* to the backend service) ---
+
+const DATA_API_URL = process.env.DATA_API_URL || "https://laserbeamnode.replit.app";
+
+app.use("/api/vb", async (req, res) => {
+  const target = `${DATA_API_URL}/api/vb${req.path}${req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`;
+  try {
+    const headers = { "Content-Type": "application/json" };
+    if (req.headers.authorization) headers["Authorization"] = req.headers.authorization;
+    const options = { method: req.method, headers };
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      options.body = JSON.stringify(req.body);
+    }
+    const upstream = await fetch(target, options);
+    const data = await upstream.text();
+    res.status(upstream.status).set("Content-Type", "application/json").send(data);
+  } catch (err) {
+    console.error("Data API proxy error:", err);
+    res.status(502).json({ error: "Data API unavailable" });
+  }
+});
+
 // --- Health check ---
 
 app.get("/api/health", (_req, res) => {

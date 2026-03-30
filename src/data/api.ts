@@ -8,7 +8,7 @@ import type {
   LunchContribution,
 } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://laserbeamnode.replit.app";
+const API_URL = import.meta.env.VITE_API_URL ?? "";
 const API_BASE = `${API_URL}/api/vb`;
 
 const baseHeaders: HeadersInit = {
