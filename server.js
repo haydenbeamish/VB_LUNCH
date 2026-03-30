@@ -195,7 +195,12 @@ app.get("/api/health", (_req, res) => {
 // --- Static file serving (production) ---
 app.use(express.static(join(__dirname, "dist")));
 app.get(/.*/, (_req, res) => {
-  res.sendFile(join(__dirname, "dist", "index.html"));
+  const indexPath = join(__dirname, "dist", "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(500).send("App not built. Please redeploy.");
+    }
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
