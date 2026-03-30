@@ -1,48 +1,38 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Table2, RefreshCw, Check, X, Clock } from "lucide-react";
-import { getResults } from "../data/api";
+import { getResultsGrid } from "../data/api";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { cn } from "../lib/cn";
 
+interface GridEvent {
+  id: number;
+  event_number?: number;
+  event_name: string;
+  sport: string;
+  status: string;
+  correct_answer: string | null;
+  predictions: Record<
+    string,
+    {
+      prediction: string;
+      is_correct: boolean | null;
+      points_awarded: number;
+    }
+  >;
+}
+
 interface ResultsData {
-  events: Array<{
-    id: number;
-    event_number?: number;
-    event_name: string;
-    sport: string;
-    status: string;
-    correct_answer: string | null;
-    predictions: Record<
-      string,
-      {
-        prediction: string;
-        is_correct: boolean | null;
-        points_awarded: number;
-        prediction_label?: string;
-      }
-    >;
-  }>;
+  events: GridEvent[];
   participants: Array<{ id: number; name: string }>;
-  prize_pool?: {
-    lunchCostPerHead: number;
-    participantCount: number;
-    totalLunchCost: number;
-    lunchContributions: number[];
-  };
 }
 
 function useResultsGrid() {
   return useQuery<ResultsData>({
     queryKey: ["results-grid"],
-    queryFn: async () => {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "https://laserbeamnode.replit.app"}/api/vb/results`
-      );
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      return res.json();
-    },
+    queryFn: () => getResultsGrid() as Promise<ResultsData>,
   });
 }
 
@@ -86,7 +76,8 @@ export function ResultsGridPage() {
   }
 
   const { events, participants } = data;
-  const participantNames = participants.map((p) => p.name);
+  const participantNames = useMemo(() => participants.map((p) => p.name), [participants]);
+  const completedCount = useMemo(() => events.filter((e) => e.status === "completed").length, [events]);
 
   return (
     <motion.div
@@ -98,7 +89,7 @@ export function ResultsGridPage() {
       <div className="px-4 pt-4 pb-2">
         <h2 className="text-lg font-bold text-zinc-800">Results Grid</h2>
         <p className="text-xs text-zinc-400 mt-0.5">
-          {events.filter((e) => e.status === "completed").length} of {events.length} events decided
+          {completedCount} of {events.length} events decided
         </p>
       </div>
 

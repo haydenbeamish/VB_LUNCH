@@ -57,10 +57,21 @@ export async function logout(): Promise<void> {
   clearStoredToken();
 }
 
+export interface SetEventResultResponse {
+  success: boolean;
+  event: { id: number; event_name: string; correct_answer: string; status: string };
+  predictions: Array<{
+    participant_name: string;
+    prediction: string;
+    is_correct: boolean;
+    points_awarded: number;
+  }>;
+}
+
 export async function setEventResult(
   eventId: number,
   correctAnswer: string
-): Promise<Record<string, unknown>> {
+): Promise<SetEventResultResponse> {
   const token = getStoredToken();
   if (!token) throw new Error("Not authenticated");
   const res = await fetch(`${API_BASE}/admin/events/${eventId}/result`, {
@@ -199,6 +210,11 @@ export async function getParticipant(id: number): Promise<{
   return data as { participant: Participant; predictions: Prediction[]; total_points: number };
 }
 
+/** Raw /results response — preserves predictions keyed by participant name (for the grid view). */
+export async function getResultsGrid(): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>("/results");
+}
+
 export async function getResults(): Promise<{
   events: CompetitionEvent[];
   participants: Participant[];
@@ -259,7 +275,7 @@ export async function getStats(): Promise<StatsOverview> {
     getLeaderboard(),
   ]);
 
-  // Build the full lunch contributions table (14 positions) with participant names
+  // Build the full lunch contributions table (11 positions) with participant names
   const { LUNCH_CONTRIBUTIONS } = await import("../lib/feed/index");
   const lunch_contributions: LunchContribution[] = LUNCH_CONTRIBUTIONS.map((entry) => {
     const player = lb[entry.position - 1];

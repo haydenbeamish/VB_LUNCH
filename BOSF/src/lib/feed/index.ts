@@ -26,9 +26,9 @@ export type { FeedItem, FeedItemType, BackendFeedItem } from "./types";
 export { normalizeBackendFeedItem } from "./normalize";
 
 /**
- * Lunch contributions table — maps leaderboard position (1-14) to the
+ * Lunch contributions table — maps leaderboard position (1-11) to the
  * dollar amount that person contributes to the group lunch.
- * Position 1 (leader) pays $0; position 14 (last) pays $325.
+ * Position 1 (leader) pays $0; position 11 (last) pays $500.
  */
 export const LUNCH_CONTRIBUTIONS: { position: number; contribution: number }[] = [
   { position: 1, contribution: 0 },

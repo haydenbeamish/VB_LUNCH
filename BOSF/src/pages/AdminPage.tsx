@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +19,7 @@ import {
   getEvents,
   getEvent,
 } from "../data/api";
+import type { SetEventResultResponse } from "../data/api";
 import type { CompetitionEvent, EventWithPredictions } from "../types";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -92,18 +93,6 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-// --- Event result card ---
-
-interface ResultConfirmation {
-  event: { event_name: string; correct_answer: string };
-  predictions: Array<{
-    participant_name: string;
-    prediction: string;
-    is_correct: boolean;
-    points_awarded: number;
-  }>;
-}
-
 function EventResultCard({
   event,
   onSaved,
@@ -115,7 +104,7 @@ function EventResultCard({
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [customAnswer, setCustomAnswer] = useState("");
   const [saving, setSaving] = useState(false);
-  const [confirmation, setConfirmation] = useState<ResultConfirmation | null>(null);
+  const [confirmation, setConfirmation] = useState<SetEventResultResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: eventDetail } = useQuery<EventWithPredictions>({
@@ -124,15 +113,13 @@ function EventResultCard({
     enabled: expanded,
   });
 
-  const uniquePredictions = eventDetail
-    ? [
-        ...new Set(
-          eventDetail.predictions
-            .map((p) => p.prediction?.trim())
-            .filter(Boolean)
-        ),
-      ]
-    : [];
+  const uniquePredictions = useMemo(
+    () =>
+      eventDetail
+        ? [...new Set(eventDetail.predictions.map((p) => p.prediction?.trim()).filter(Boolean))]
+        : [],
+    [eventDetail]
+  );
 
   const finalAnswer = selectedAnswer === "__custom__" ? customAnswer.trim() : selectedAnswer;
 
@@ -142,7 +129,7 @@ function EventResultCard({
     setError(null);
     try {
       const result = await setEventResult(event.id, finalAnswer);
-      setConfirmation(result as unknown as ResultConfirmation);
+      setConfirmation(result);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
