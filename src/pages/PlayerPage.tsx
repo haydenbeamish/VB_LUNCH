@@ -1,17 +1,27 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Trophy, Target, Clock, Check, X, Flame, RefreshCw, Zap } from "lucide-react";
 import { usePlayer } from "../hooks/usePlayer";
+import { useLeaderboard } from "../hooks/useLeaderboard";
+import { getResults } from "../data/api";
 import { Avatar } from "../components/ui/Avatar";
 import { GlassCard } from "../components/ui/GlassCard";
 import { Badge } from "../components/ui/Badge";
 import { SportIcon } from "../components/ui/SportIcon";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
+import { ClickableRow } from "../components/ui/ClickableRow";
+import { AchievementList } from "../components/ui/AchievementList";
 import { PlayerInsight } from "../components/feed/PlayerInsight";
+import { PlayerCharts } from "../components/feed/PlayerCharts";
 import { FormGuide } from "../components/ui/FormGuide";
 import type { FormResult } from "../components/ui/FormGuide";
+import {
+  computeAchievements,
+  annotateCrossPlayerAchievements,
+} from "../lib/achievements";
 import { cn } from "../lib/cn";
 
 export function PlayerPage() {
@@ -19,6 +29,30 @@ export function PlayerPage() {
   const navigate = useNavigate();
   const numId = Number(id);
   const { data, loading, error, retry } = usePlayer(numId);
+  const { entries: leaderboard } = useLeaderboard();
+  const { data: resultsData } = useQuery({
+    queryKey: ["results"],
+    queryFn: getResults,
+  });
+
+  const achievements = useMemo(() => {
+    if (!data) return [];
+    const entry = leaderboard.find((e) => e.id === numId);
+    const completedEvents =
+      resultsData?.events.filter((e) => e.status === "completed").length ?? 0;
+    const base = computeAchievements({
+      predictions: data.predictions,
+      leaderboardEntry: entry,
+      leaderboardSize: leaderboard.length,
+      completedEvents,
+    });
+    if (!resultsData?.predictions?.length) return base;
+    return annotateCrossPlayerAchievements(
+      base,
+      data.predictions,
+      resultsData.predictions,
+    );
+  }, [data, leaderboard, numId, resultsData]);
 
   // Compute derived stats
   const stats = useMemo(() => {
@@ -148,6 +182,16 @@ export function PlayerPage() {
         </GlassCard>
       </div>
 
+      {/* Achievements / badges */}
+      {achievements.length > 0 && (
+        <div className="px-4 mb-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 px-1">
+            Badges ({achievements.length})
+          </h3>
+          <AchievementList achievements={achievements} />
+        </div>
+      )}
+
       {/* AI-generated player insight */}
       <PlayerInsight
         name={participant.name}
@@ -199,6 +243,9 @@ export function PlayerPage() {
         </motion.div>
       )}
 
+      {/* Player charts: cumulative points + sport mix */}
+      <PlayerCharts predictions={data.predictions} />
+
       {/* Decided picks */}
       {decided.length > 0 && (
         <div className="px-4 mb-6">
@@ -207,17 +254,18 @@ export function PlayerPage() {
           </h3>
           <div className="flex flex-col gap-2">
             {decided.map((pred, i) => (
-              <motion.div
+              <ClickableRow
                 key={pred.id ?? `d-${pred.event_id}-${i}`}
+                onActivate={() => navigate(`/events/${pred.event_id}`)}
+                ariaLabel={`${pred.event_name} — picked ${pred.prediction}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + Math.min(i * 0.02, 0.4) }}
-                onClick={() => navigate(`/events/${pred.event_id}`)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-2xl border cursor-pointer active:scale-[0.98] transition-all",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-2xl border",
                   pred.is_correct
                     ? "border-emerald-200/40 bg-emerald-50/50"
-                    : "border-red-200/30 bg-red-50/30"
+                    : "border-red-200/30 bg-red-50/30",
                 )}
               >
                 <SportIcon sport={pred.sport || "AFL"} size="sm" />
@@ -238,12 +286,12 @@ export function PlayerPage() {
                   )}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center",
-                    pred.is_correct ? "bg-emerald-100" : "bg-red-100"
+                    pred.is_correct ? "bg-emerald-100" : "bg-red-100",
                   )}>
                     {pred.is_correct ? <Check size={14} className="text-emerald-600" /> : <X size={14} className="text-red-400" />}
                   </div>
                 </div>
-              </motion.div>
+              </ClickableRow>
             ))}
           </div>
         </div>
@@ -257,13 +305,14 @@ export function PlayerPage() {
           </h3>
           <div className="flex flex-col gap-2">
             {pendingList.map((pred, i) => (
-              <motion.div
+              <ClickableRow
                 key={pred.id ?? `p-${pred.event_id}-${i}`}
+                onActivate={() => navigate(`/events/${pred.event_id}`)}
+                ariaLabel={`${pred.event_name} — pending`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + Math.min(i * 0.02, 0.4) }}
-                onClick={() => navigate(`/events/${pred.event_id}`)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-zinc-200/60 bg-white cursor-pointer active:scale-[0.98] transition-all shadow-sm"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-zinc-200/60 bg-white shadow-sm"
               >
                 <SportIcon sport={pred.sport || "AFL"} size="sm" />
                 <div className="flex-1 min-w-0">
@@ -273,7 +322,7 @@ export function PlayerPage() {
                   </p>
                 </div>
                 <Clock size={12} className="text-zinc-300 shrink-0" />
-              </motion.div>
+              </ClickableRow>
             ))}
           </div>
         </div>

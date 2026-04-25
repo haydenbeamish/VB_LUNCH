@@ -10,7 +10,6 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const EventDetailPage = lazy(() => import("./pages/EventDetailPage"));
 const PlayerPage = lazy(() => import("./pages/PlayerPage"));
-const MembersPage = lazy(() => import("./pages/MembersPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const NewsPage = lazy(() => import("./pages/NewsPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -61,7 +60,6 @@ function AnimatedRoutes() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/player/:id" element={<PlayerPage />} />
-          <Route path="/members" element={<MembersPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

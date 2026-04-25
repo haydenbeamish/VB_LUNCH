@@ -201,6 +201,20 @@ app.use("/api/vb", async (req, res) => {
   }
 });
 
+// --- Client-side error reports ---
+
+app.post("/api/log-error", (req, res) => {
+  const { message, stack, componentStack, url, userAgent } = req.body ?? {};
+  console.error("[client-error]", {
+    message,
+    url,
+    userAgent,
+    stack,
+    componentStack,
+  });
+  res.status(204).end();
+});
+
 // --- Health check ---
 
 app.get("/api/health", (_req, res) => {

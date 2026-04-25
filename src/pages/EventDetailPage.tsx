@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, X, Clock, Sparkles, RefreshCw, Users } from "lucide-react";
+import { Check, X, Clock, Sparkles, RefreshCw, Users, Flame } from "lucide-react";
 import { useEvent } from "../hooks/useEvent";
 import { SportIcon } from "../components/ui/SportIcon";
 import { StatusPill } from "../components/ui/StatusPill";
@@ -9,6 +9,7 @@ import { GlassCard } from "../components/ui/GlassCard";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
+import { ClickableRow } from "../components/ui/ClickableRow";
 import { EventNews } from "../components/feed/EventNews";
 import { cn } from "../lib/cn";
 
@@ -25,6 +26,7 @@ interface PredictionGroup {
   isCorrect: boolean | null;
   isOutlier: boolean;
   percentage: number;
+  isMostPicked: boolean;
 }
 
 function groupPredictions(predictions: Array<{
@@ -46,6 +48,7 @@ function groupPredictions(predictions: Array<{
         isCorrect: pred.is_correct,
         isOutlier: false,
         percentage: 0,
+        isMostPicked: false,
       };
     }
     groups[key].predictions.push(pred);
@@ -54,20 +57,24 @@ function groupPredictions(predictions: Array<{
   const total = predictions.length;
   const threshold = Math.max(1, Math.floor(total * 0.2));
 
-  const sorted = Object.values(groups)
-    .map((g) => ({
-      ...g,
-      percentage: total > 0 ? Math.round((g.predictions.length / total) * 100) : 0,
-      isOutlier: g.predictions.length <= threshold && total >= 3,
-    }))
-    .sort((a, b) => {
-      // Correct answer first, then by count
-      if (a.isCorrect === true && b.isCorrect !== true) return -1;
-      if (b.isCorrect === true && a.isCorrect !== true) return 1;
-      return b.predictions.length - a.predictions.length;
-    });
+  const list = Object.values(groups).map((g) => ({
+    ...g,
+    percentage: total > 0 ? Math.round((g.predictions.length / total) * 100) : 0,
+    isOutlier: g.predictions.length <= threshold && total >= 3,
+  }));
 
-  return sorted;
+  const maxCount = list.reduce((m, g) => Math.max(m, g.predictions.length), 0);
+  for (const g of list) {
+    if (g.predictions.length === maxCount && maxCount > 0) g.isMostPicked = true;
+  }
+
+  list.sort((a, b) => {
+    if (a.isCorrect === true && b.isCorrect !== true) return -1;
+    if (b.isCorrect === true && a.isCorrect !== true) return 1;
+    return b.predictions.length - a.predictions.length;
+  });
+
+  return list;
 }
 
 export function EventDetailPage() {
@@ -224,6 +231,11 @@ export function EventDetailPage() {
                     {group.isCorrect === false && isDecided && (
                       <X size={12} className="text-red-400 shrink-0" />
                     )}
+                    {group.isMostPicked && group.predictions.length > 1 && (
+                      <Badge variant="gold" size="sm" className="shrink-0">
+                        <Flame size={8} /> Most picked
+                      </Badge>
+                    )}
                     {group.isOutlier && (
                       <Badge variant="void" size="sm" className="shrink-0">
                         <Sparkles size={8} /> Outlier
@@ -253,16 +265,17 @@ export function EventDetailPage() {
                 {/* Participants in this group */}
                 <div className="flex flex-col gap-1.5">
                   {group.predictions.map((pred, i) => (
-                    <div
+                    <ClickableRow
                       key={pred.id ?? `${pred.participant_id}-${i}`}
-                      onClick={() => navigate(`/player/${pred.participant_id}`)}
+                      onActivate={() => navigate(`/player/${pred.participant_id}`)}
+                      ariaLabel={`${pred.participant_name ?? "Player"} — picked ${pred.prediction}`}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer active:scale-[0.98] transition-all",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-xl border",
                         group.isCorrect === true
                           ? "border-emerald-200/40 bg-emerald-50/50"
                           : group.isCorrect === false
                           ? "border-red-200/30 bg-red-50/30"
-                          : "border-zinc-200/60 bg-white"
+                          : "border-zinc-200/60 bg-white",
                       )}
                     >
                       <Avatar name={pred.participant_name ?? "?"} id={pred.participant_id} size="sm" />
@@ -273,7 +286,7 @@ export function EventDetailPage() {
                       {isDecided && (
                         <div className={cn(
                           "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-                          pred.is_correct ? "bg-emerald-100" : "bg-red-100"
+                          pred.is_correct ? "bg-emerald-100" : "bg-red-100",
                         )}>
                           {pred.is_correct ? (
                             <Check size={12} className="text-emerald-600" />
@@ -285,7 +298,7 @@ export function EventDetailPage() {
                       {!isDecided && (
                         <Clock size={12} className="text-zinc-400 shrink-0" />
                       )}
-                    </div>
+                    </ClickableRow>
                   ))}
                 </div>
               </motion.div>

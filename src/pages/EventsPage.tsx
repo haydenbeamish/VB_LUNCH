@@ -1,21 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Check, CalendarDays, CheckCircle2 } from "lucide-react";
-import { getEventDisplayDate, formatEventDate } from "../lib/dates";
+import { CalendarDays, CheckCircle2, Zap } from "lucide-react";
 import { useEvents } from "../hooks/useEvents";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
-import { SportIcon } from "../components/ui/SportIcon";
-import { StatusPill } from "../components/ui/StatusPill";
+import { EventListItem } from "../components/ui/EventListItem";
 import { getCategoryInfo } from "../lib/categories";
 import { cn } from "../lib/cn";
-import { Zap } from "lucide-react";
 
 type EventTab = "upcoming" | "decided";
 
 export function EventsPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<EventTab>("upcoming");
   const {
     allEvents,
@@ -200,48 +195,7 @@ export function EventsPage() {
             className="flex flex-col gap-1.5 pt-1"
           >
             {displayEvents.map((evt, i) => (
-              <motion.div
-                key={evt.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.025, 0.5), duration: 0.3 }}
-                onClick={() => navigate(`/events/${evt.id}`)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-2xl border cursor-pointer active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5 transition-all shadow-sm",
-                  evt.status === "completed"
-                    ? "border-zinc-200/60 bg-white"
-                    : evt.status === "in_progress"
-                    ? "border-amber-200/50 bg-amber-50/30"
-                    : "border-zinc-200/60 bg-white"
-                )}
-              >
-                <SportIcon sport={evt.sport} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-800 line-clamp-2 leading-snug">{evt.event_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {evt.status === "completed" && evt.correct_answer ? (
-                      <div className="flex items-center gap-1 min-w-0">
-                        <Check size={10} className="text-emerald-600 shrink-0" />
-                        <p className="text-xs text-emerald-600 truncate">{evt.correct_answer}</p>
-                      </div>
-                    ) : evt.status === "in_progress" ? (
-                      <div className="flex items-center gap-1.5">
-                        <StatusPill status="in_progress" />
-                        {formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date)) && (
-                          <p className="text-xs text-zinc-400">
-                            ends {formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date))}
-                          </p>
-                        )}
-                      </div>
-                    ) : formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date)) ? (
-                      <p className="text-xs text-zinc-400">
-                        {formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date))}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                <ChevronRight size={14} className="text-zinc-300 shrink-0" />
-              </motion.div>
+              <EventListItem key={evt.id} event={evt} index={i} />
             ))}
           </motion.div>
         )}
