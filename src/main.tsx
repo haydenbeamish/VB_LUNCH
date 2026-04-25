@@ -9,13 +9,11 @@ import App from "./App";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000,          // Data fresh for 2 minutes
-      gcTime: 24 * 60 * 60 * 1000,       // Keep cached data for 24 hours
+      staleTime: 2 * 60 * 1000,
+      gcTime: 24 * 60 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: true,         // Refresh when user tabs back
-      refetchOnReconnect: true,           // Refresh when network reconnects
-      refetchInterval: 5 * 60 * 1000,    // Background poll every 5 minutes
-      refetchIntervalInBackground: false, // Only poll when tab is visible
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     },
   },
 });

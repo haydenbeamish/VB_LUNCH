@@ -9,10 +9,9 @@ import { Avatar } from "../components/ui/Avatar";
 import { StatCard } from "../components/ui/StatCard";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
-import { SportIcon } from "../components/ui/SportIcon";
+import { EventListItem } from "../components/ui/EventListItem";
 import { FeedCard } from "../components/feed/FeedCard";
 import { Podium } from "../components/leaderboard/Podium";
-import { getEventDisplayDate, formatEventDate } from "../lib/dates";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -205,25 +204,7 @@ export function DashboardPage() {
           </div>
           <div className="flex flex-col gap-1.5">
             {upcomingEvents.map((evt, i) => (
-              <motion.div
-                key={evt.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.04 }}
-                onClick={() => navigate(`/events/${evt.id}`)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-zinc-200/60 bg-white cursor-pointer active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5 transition-all shadow-sm"
-              >
-                <SportIcon sport={evt.sport} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-800 line-clamp-2 leading-snug">{evt.event_name}</p>
-                  {formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date)) && (
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      {formatEventDate(getEventDisplayDate(evt.event_date, evt.close_date))}
-                    </p>
-                  )}
-                </div>
-                <ChevronRight size={14} className="text-zinc-300 shrink-0" />
-              </motion.div>
+              <EventListItem key={evt.id} event={evt} index={i} iconSize="sm" />
             ))}
           </div>
         </div>

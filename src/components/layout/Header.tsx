@@ -9,7 +9,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/news": "News Feed",
   "/events": "Events",
   "/leaderboard": "Leaderboard",
-  "/members": "Members",
   "/admin": "Admin",
 };
 
@@ -38,7 +37,7 @@ export function Header({ hidden = false }: { hidden?: boolean }) {
       if (window.history.state?.idx > 0) {
         navigate(-1);
       } else {
-        navigate("/members");
+        navigate("/leaderboard");
       }
     } else {
       navigate(-1);

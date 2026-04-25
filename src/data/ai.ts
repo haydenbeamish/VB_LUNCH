@@ -1,6 +1,7 @@
 import type { FeedItem } from "../lib/newsfeed";
+import { sanitizeText, sanitizeLongText } from "../lib/sanitize";
 
-const AI_BASE = import.meta.env.DEV ? "" : "";
+const AI_BASE = "";
 
 interface BanterResult {
   headline: string;
@@ -26,11 +27,11 @@ export async function enhanceBanter(feedItems: FeedItem[]): Promise<BanterResult
       body: JSON.stringify({
         feedItems: feedItems.map((item) => ({
           type: item.type,
-          headline: item.headline,
-          subtext: item.subtext,
-          playerName: item.playerName,
-          sport: item.sport,
-          eventName: item.eventName,
+          headline: sanitizeText(item.headline, 120),
+          subtext: sanitizeLongText(item.subtext, 240),
+          playerName: sanitizeText(item.playerName, 60),
+          sport: sanitizeText(item.sport, 40),
+          eventName: sanitizeText(item.eventName, 120),
         })),
       }),
     });

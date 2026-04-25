@@ -10,7 +10,6 @@ interface RankRowProps {
   entry: EnhancedLeaderboardEntry;
   isSpud: boolean;
   index: number;
-  totalEntries: number;
 }
 
 export function RankRow({ entry, isSpud, index }: RankRowProps) {
