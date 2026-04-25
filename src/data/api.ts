@@ -211,11 +211,6 @@ export async function getParticipant(id: number): Promise<{
   return data as { participant: Participant; predictions: Prediction[]; total_points: number };
 }
 
-/** Raw /results response — preserves predictions keyed by participant name (for the grid view). */
-export async function getResultsGrid(): Promise<Record<string, unknown>> {
-  return fetchJson<Record<string, unknown>>("/results");
-}
-
 export async function getResults(): Promise<{
   events: CompetitionEvent[];
   participants: Participant[];

@@ -1,12 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Trophy, CalendarDays, Newspaper, Table2, Shield } from "lucide-react";
+import { LayoutDashboard, Trophy, CalendarDays, Newspaper, Shield } from "lucide-react";
 import { cn } from "../../lib/cn";
 
 const tabs = [
   { to: "/", label: "Home", icon: LayoutDashboard },
   { to: "/news", label: "News", icon: Newspaper },
-  { to: "/results", label: "Grid", icon: Table2 },
   { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/leaderboard", label: "Board", icon: Trophy },
   { to: "/admin", label: "Admin", icon: Shield },

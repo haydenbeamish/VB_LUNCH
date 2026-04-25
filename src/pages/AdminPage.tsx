@@ -369,7 +369,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const handleEventSaved = useCallback(() => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-    queryClient.invalidateQueries({ queryKey: ["results-grid"] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
   }, [refetch, queryClient]);
 
