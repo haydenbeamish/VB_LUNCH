@@ -15,10 +15,6 @@ interface SearchResult {
   age?: string;
 }
 
-/**
- * Send feed items to OpenRouter for AI-enhanced banter.
- * Falls back gracefully — returns null if the service is unavailable.
- */
 export async function enhanceBanter(feedItems: FeedItem[]): Promise<BanterResult[] | null> {
   try {
     const res = await fetch(`${AI_BASE}/api/ai/banter`, {
@@ -46,10 +42,6 @@ export async function enhanceBanter(feedItems: FeedItem[]): Promise<BanterResult
   }
 }
 
-/**
- * Search for recent news about a sport/event using Brave Web Search.
- * Returns empty array if the service is unavailable.
- */
 export async function searchEventNews(query: string): Promise<SearchResult[]> {
   try {
     const res = await fetch(
@@ -64,9 +56,6 @@ export async function searchEventNews(query: string): Promise<SearchResult[]> {
   }
 }
 
-/**
- * Get an AI-generated response about a topic (general chat).
- */
 export async function askAI(message: string, context?: string): Promise<string | null> {
   try {
     const res = await fetch(`${AI_BASE}/api/ai/chat`, {

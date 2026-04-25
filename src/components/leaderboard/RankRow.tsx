@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { Avatar } from "../ui/Avatar";
 import { FormGuide } from "../ui/FormGuide";
+import { ClickableRow } from "../ui/ClickableRow";
 import { cn } from "../../lib/cn";
 import type { EnhancedLeaderboardEntry } from "../../hooks/useLeaderboard";
 
@@ -10,32 +10,36 @@ interface RankRowProps {
   entry: EnhancedLeaderboardEntry;
   isSpud: boolean;
   index: number;
+  /** Visual rank to display — defaults to entry.rank (points-based). Pass a list index when sorted by another key. */
+  displayRank?: number;
 }
 
-export function RankRow({ entry, isSpud, index }: RankRowProps) {
+export function RankRow({ entry, isSpud, index, displayRank }: RankRowProps) {
   const navigate = useNavigate();
   const winRate = entry.win_rate;
+  const rank = displayRank ?? entry.rank;
 
   return (
-    <motion.div
+    <ClickableRow
+      onActivate={() => navigate(`/player/${entry.id}`)}
+      ariaLabel={`${entry.name}, rank ${rank}, ${entry.total_points.toFixed(1)} points`}
       initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 + index * 0.04, duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-      onClick={() => navigate(`/player/${entry.id}`)}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-200",
+        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200",
         "border border-zinc-200/60 bg-white shadow-sm",
-        "active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5",
-        isSpud && "border-red-200/50 bg-red-50/50"
+        "hover:shadow-md hover:-translate-y-0.5",
+        isSpud && "border-red-200/50 bg-red-50/50",
       )}
     >
       {/* Rank */}
       <div className="w-7 flex items-center justify-center shrink-0">
         <span className={cn(
           "font-display font-extrabold text-sm",
-          entry.rank <= 3 ? "text-amber-600" : isSpud ? "text-red-500" : "text-zinc-400"
+          rank <= 3 ? "text-amber-600" : isSpud ? "text-red-500" : "text-zinc-400"
         )}>
-          {entry.rank}
+          {rank}
         </span>
       </div>
 
@@ -72,7 +76,7 @@ export function RankRow({ entry, isSpud, index }: RankRowProps) {
       <div className="text-right shrink-0 mr-1">
         <span className={cn(
           "font-display font-extrabold text-base tabular-nums",
-          entry.rank === 1 ? "text-amber-600" : isSpud ? "text-red-500" : "text-zinc-800"
+          rank === 1 ? "text-amber-600" : isSpud ? "text-red-500" : "text-zinc-800"
         )}>
           {entry.total_points.toFixed(1)}
         </span>
@@ -88,6 +92,6 @@ export function RankRow({ entry, isSpud, index }: RankRowProps) {
       </div>
 
       <ChevronRight size={14} className="text-zinc-300 shrink-0" />
-    </motion.div>
+    </ClickableRow>
   );
 }

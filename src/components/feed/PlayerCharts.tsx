@@ -10,11 +10,6 @@ interface PlayerChartsProps {
   predictions: Prediction[];
 }
 
-/**
- * Two zero-dep SVG charts:
- *   1) Cumulative points over time (sorted by event_id as recency proxy)
- *   2) Sport mix — pick count + win rate per sport
- */
 export function PlayerCharts({ predictions }: PlayerChartsProps) {
   const decided = useMemo(
     () =>
@@ -26,19 +21,20 @@ export function PlayerCharts({ predictions }: PlayerChartsProps) {
 
   const { cumulative, maxValue, minValue } = useMemo(() => {
     let running = 0;
+    let maxValue = 0;
+    let minValue = 0;
     const points: number[] = [];
     for (const p of decided) {
       running += p.points_earned || 0;
-      points.push(Number(running.toFixed(2)));
+      const v = Number(running.toFixed(2));
+      points.push(v);
+      if (v > maxValue) maxValue = v;
+      if (v < minValue) minValue = v;
     }
-    return {
-      cumulative: points,
-      maxValue: points.length ? Math.max(...points, 0) : 0,
-      minValue: points.length ? Math.min(...points, 0) : 0,
-    };
+    return { cumulative: points, maxValue, minValue };
   }, [decided]);
 
-  const sportMix = useMemo(() => {
+  const { sportMix, sportTotal } = useMemo(() => {
     const map = new Map<string, { total: number; wins: number }>();
     for (const p of predictions) {
       if (!p.sport) continue;
@@ -48,7 +44,7 @@ export function PlayerCharts({ predictions }: PlayerChartsProps) {
       if (isCorrect(p.is_correct)) entry.wins += 1;
       map.set(p.sport, entry);
     }
-    return [...map.entries()]
+    const rows = [...map.entries()]
       .map(([sport, s]) => ({
         sport,
         total: s.total,
@@ -56,6 +52,8 @@ export function PlayerCharts({ predictions }: PlayerChartsProps) {
         winRate: s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0,
       }))
       .sort((a, b) => b.total - a.total);
+    const total = rows.reduce((sum, r) => sum + r.total, 0);
+    return { sportMix: rows, sportTotal: total };
   }, [predictions]);
 
   if (decided.length < 3 && sportMix.length === 0) return null;
@@ -151,11 +149,7 @@ export function PlayerCharts({ predictions }: PlayerChartsProps) {
             <div className="flex flex-col gap-1.5">
               {sportMix.slice(0, 6).map((row) => {
                 const info = getCategoryInfo(row.sport);
-                const pct = Math.round(
-                  (row.total /
-                    Math.max(1, sportMix.reduce((a, b) => a + b.total, 0))) *
-                    100,
-                );
+                const pct = Math.round((row.total / Math.max(1, sportTotal)) * 100);
                 return (
                   <div key={row.sport} className="flex items-center gap-2">
                     <span

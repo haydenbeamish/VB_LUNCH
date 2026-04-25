@@ -73,49 +73,50 @@ export function LeaderboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>("points");
   const [showInactive, setShowInactive] = useState(true);
 
-  const {
-    visibleEntries,
-    groupWinRate,
-    topScore,
-    topGap,
-    completedEvents,
-    tiedAtTop,
-  } = useMemo(() => {
-    const totalDecided = entries.reduce(
-      (s, e) => s + e.decided_predictions,
-      0,
-    );
-    const totalCorrect = entries.reduce(
-      (s, e) => s + e.correct_predictions,
-      0,
-    );
-    const groupWinRate =
-      totalDecided > 0 ? Math.round((totalCorrect / totalDecided) * 100) : 0;
-    const topScore = entries[0]?.total_points ?? 0;
-    const topGap =
-      entries.length >= 2 ? entries[0].total_points - entries[1].total_points : 0;
-    const completedEvents = allEvents.filter(
-      (e) => e.status === "completed",
-    ).length;
+  const { groupWinRate, topScore, topGap, completedEvents, tiedAtTop } =
+    useMemo(() => {
+      const totalDecided = entries.reduce(
+        (s, e) => s + e.decided_predictions,
+        0,
+      );
+      const totalCorrect = entries.reduce(
+        (s, e) => s + e.correct_predictions,
+        0,
+      );
+      const groupWinRate =
+        totalDecided > 0 ? Math.round((totalCorrect / totalDecided) * 100) : 0;
+      const topScore = entries[0]?.total_points ?? 0;
+      const topGap =
+        entries.length >= 2
+          ? entries[0].total_points - entries[1].total_points
+          : 0;
+      const completedEvents = allEvents.filter(
+        (e) => e.status === "completed",
+      ).length;
+      const tiedAtTop =
+        entries.length >= 2
+          ? entries.filter((e) => e.total_points === topScore).length
+          : 1;
+      return { groupWinRate, topScore, topGap, completedEvents, tiedAtTop };
+    }, [entries, allEvents]);
 
-    const tiedAtTop =
-      entries.length >= 2
-        ? entries.filter((e) => e.total_points === topScore).length
-        : 1;
-
+  const visibleEntries = useMemo(() => {
     const filtered = showInactive
       ? entries
       : entries.filter((e) => e.total_predictions > 0);
+    return sortEntries(filtered, sortKey);
+  }, [entries, sortKey, showInactive]);
 
-    return {
-      visibleEntries: sortEntries(filtered, sortKey),
-      groupWinRate,
-      topScore,
-      topGap,
-      completedEvents,
-      tiedAtTop,
-    };
-  }, [entries, allEvents, sortKey, showInactive]);
+  // Podium always shows the canonical top 3 by points; exclude those from the
+  // standings list to avoid duplication, regardless of the active sort key.
+  const podiumIds = useMemo(
+    () => new Set(entries.slice(0, 3).map((e) => e.id)),
+    [entries],
+  );
+  const standingsRows = useMemo(
+    () => visibleEntries.filter((e) => !podiumIds.has(e.id)),
+    [visibleEntries, podiumIds],
+  );
 
   if (error) {
     return (
@@ -286,15 +287,15 @@ export function LeaderboardPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {(sortKey === "points"
-                    ? visibleEntries.slice(3)
-                    : visibleEntries
-                  ).map((entry, i) => (
+                  {standingsRows.map((entry, i) => (
                     <RankRow
                       key={entry.id}
                       entry={entry}
                       isSpud={spud?.id === entry.id}
                       index={i}
+                      displayRank={
+                        sortKey === "points" ? entry.rank : i + 4
+                      }
                     />
                   ))}
                 </div>
