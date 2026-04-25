@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Trophy, Target, Clock, Check, X, Flame, RefreshCw, Zap } from "lucide-react";
 import { usePlayer } from "../hooks/usePlayer";
 import { useLeaderboard } from "../hooks/useLeaderboard";
-import { getResults } from "../data/api";
+import { useResults } from "../hooks/useResults";
 import { Avatar } from "../components/ui/Avatar";
 import { GlassCard } from "../components/ui/GlassCard";
 import { Badge } from "../components/ui/Badge";
@@ -22,6 +21,8 @@ import {
   computeAchievements,
   annotateCrossPlayerAchievements,
 } from "../lib/achievements";
+import { computeStreaks } from "../lib/feed/streaks";
+import { isCorrect, isIncorrect } from "../lib/predictions";
 import { cn } from "../lib/cn";
 
 export function PlayerPage() {
@@ -30,81 +31,91 @@ export function PlayerPage() {
   const numId = Number(id);
   const { data, loading, error, retry } = usePlayer(numId);
   const { entries: leaderboard } = useLeaderboard();
-  const { data: resultsData } = useQuery({
-    queryKey: ["results"],
-    queryFn: getResults,
-  });
+  const { data: resultsData } = useResults();
+  const allPredictions = resultsData?.predictions;
+  const completedEvents = useMemo(
+    () =>
+      resultsData?.events.filter((e) => e.status === "completed").length ?? 0,
+    [resultsData?.events],
+  );
 
   const achievements = useMemo(() => {
     if (!data) return [];
     const entry = leaderboard.find((e) => e.id === numId);
-    const completedEvents =
-      resultsData?.events.filter((e) => e.status === "completed").length ?? 0;
     const base = computeAchievements({
       predictions: data.predictions,
       leaderboardEntry: entry,
       leaderboardSize: leaderboard.length,
       completedEvents,
     });
-    if (!resultsData?.predictions?.length) return base;
-    return annotateCrossPlayerAchievements(
-      base,
-      data.predictions,
-      resultsData.predictions,
-    );
-  }, [data, leaderboard, numId, resultsData]);
+    if (!allPredictions?.length) return base;
+    return annotateCrossPlayerAchievements(base, data.predictions, allPredictions);
+  }, [data, leaderboard, numId, allPredictions, completedEvents]);
 
   // Compute derived stats
+  const events = resultsData?.events ?? [];
   const stats = useMemo(() => {
     if (!data) return null;
     const { predictions, total_points } = data;
-    const wins = predictions.filter((p) => p.is_correct === true).length;
-    const losses = predictions.filter((p) => p.is_correct === false).length;
-    const pending = predictions.filter((p) => p.is_correct === null).length;
-    const winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+    const wins = predictions.filter((p) => isCorrect(p.is_correct)).length;
+    const losses = predictions.filter((p) => isIncorrect(p.is_correct)).length;
+    const pending = predictions.length - wins - losses;
+    const winRate = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
 
-    // Sort decided by most recent (highest event_id = most recently created)
     const decided = predictions
-      .filter((p) => p.is_correct !== null)
+      .filter((p) => isCorrect(p.is_correct) || isIncorrect(p.is_correct))
       .sort((a, b) => (b.event_id ?? 0) - (a.event_id ?? 0));
     const pendingList = predictions
-      .filter((p) => p.is_correct === null)
+      .filter((p) => !isCorrect(p.is_correct) && !isIncorrect(p.is_correct))
       .sort((a, b) => (a.event_id ?? 0) - (b.event_id ?? 0));
 
-    // Best sport: sport with highest win rate (min 2 decided)
     const sportStats: Record<string, { wins: number; total: number }> = {};
     for (const pred of predictions) {
-      if (pred.is_correct !== null && pred.sport) {
-        if (!sportStats[pred.sport]) sportStats[pred.sport] = { wins: 0, total: 0 };
-        sportStats[pred.sport].total++;
-        if (pred.is_correct) sportStats[pred.sport].wins++;
-      }
+      if (!pred.sport) continue;
+      const won = isCorrect(pred.is_correct);
+      const lost = isIncorrect(pred.is_correct);
+      if (!won && !lost) continue;
+      if (!sportStats[pred.sport]) sportStats[pred.sport] = { wins: 0, total: 0 };
+      sportStats[pred.sport].total++;
+      if (won) sportStats[pred.sport].wins++;
     }
     const bestSport = Object.entries(sportStats)
       .filter(([, s]) => s.total >= 2)
-      .sort((a, b) => (b[1].wins / b[1].total) - (a[1].wins / a[1].total))
-      .map(([sport, s]) => ({ sport, winRate: Math.round((s.wins / s.total) * 100), wins: s.wins, total: s.total }))[0] ?? null;
+      .sort((a, b) => b[1].wins / b[1].total - a[1].wins / a[1].total)
+      .map(([sport, s]) => ({
+        sport,
+        winRate: Math.round((s.wins / s.total) * 100),
+        wins: s.wins,
+        total: s.total,
+      }))[0] ?? null;
 
-    // Current streak
-    let currentStreak = 0;
-    let streakType: "win" | "lose" | null = null;
-    for (const pred of decided) {
-      if (pred.is_correct === true) {
-        if (streakType === "lose") break;
-        streakType = "win";
-        currentStreak++;
-      } else if (pred.is_correct === false) {
-        if (streakType === "win") break;
-        streakType = "lose";
-        currentStreak++;
-      }
-    }
+    const { winStreak, loseStreak } = computeStreaks(
+      data.participant.id,
+      predictions,
+      events,
+    );
+    const currentStreak = winStreak > 0 ? winStreak : loseStreak;
+    const streakType: "win" | "lose" | null =
+      winStreak > 0 ? "win" : loseStreak > 0 ? "lose" : null;
 
-    // Form guide: last 10 decided results (most recent first)
-    const formGuide: FormResult[] = decided.slice(0, 10).map((p) => (p.is_correct ? "W" : "L"));
+    const formGuide: FormResult[] = decided
+      .slice(0, 10)
+      .map((p) => (isCorrect(p.is_correct) ? "W" : "L"));
 
-    return { wins, losses, pending, winRate, decided, pendingList, total_points, bestSport, currentStreak, streakType, formGuide };
-  }, [data]);
+    return {
+      wins,
+      losses,
+      pending,
+      winRate,
+      decided,
+      pendingList,
+      total_points,
+      bestSport,
+      currentStreak,
+      streakType,
+      formGuide,
+    };
+  }, [data, events]);
 
   if (!id || isNaN(numId)) {
     return <EmptyState icon={<X size={28} />} title="Invalid player" description="This player doesn't exist." />;
@@ -263,7 +274,7 @@ export function PlayerPage() {
                 transition={{ delay: 0.2 + Math.min(i * 0.02, 0.4) }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-2xl border",
-                  pred.is_correct
+                  isCorrect(pred.is_correct)
                     ? "border-emerald-200/40 bg-emerald-50/50"
                     : "border-red-200/30 bg-red-50/30",
                 )}
@@ -274,21 +285,21 @@ export function PlayerPage() {
                   <p className="text-xs text-zinc-400 truncate mt-0.5">
                     Picked: <span className="text-zinc-600">{pred.prediction}</span>
                     {pred.correct_answer && (
-                      <> &middot; <span className={pred.is_correct ? "text-emerald-600" : "text-red-500"}>{pred.correct_answer}</span></>
+                      <> &middot; <span className={isCorrect(pred.is_correct) ? "text-emerald-600" : "text-red-500"}>{pred.correct_answer}</span></>
                     )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {pred.is_correct && pred.points_earned > 0 && (
+                  {isCorrect(pred.is_correct) && pred.points_earned > 0 && (
                     <span className="text-xs font-bold text-emerald-600 tabular-nums">
                       +{Number.isInteger(pred.points_earned) ? pred.points_earned : pred.points_earned.toFixed(1)}
                     </span>
                   )}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center",
-                    pred.is_correct ? "bg-emerald-100" : "bg-red-100",
+                    isCorrect(pred.is_correct) ? "bg-emerald-100" : "bg-red-100",
                   )}>
-                    {pred.is_correct ? <Check size={14} className="text-emerald-600" /> : <X size={14} className="text-red-400" />}
+                    {isCorrect(pred.is_correct) ? <Check size={14} className="text-emerald-600" /> : <X size={14} className="text-red-400" />}
                   </div>
                 </div>
               </ClickableRow>

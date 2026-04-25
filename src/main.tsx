@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
 
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
-  key: "bosf-cache",
+  key: "vb-lunch-cache",
 });
 
 createRoot(document.getElementById("root")!).render(

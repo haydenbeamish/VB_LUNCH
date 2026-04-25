@@ -10,16 +10,11 @@ import type { CompetitionEvent } from "../../types";
 interface EventListItemProps {
   event: CompetitionEvent;
   index?: number;
-  /** When true, delays animation by `index * 0.025` */
   animated?: boolean;
   iconSize?: "sm" | "md" | "lg";
   className?: string;
 }
 
-/**
- * Single source of truth for how an event renders in a list.
- * Used by Dashboard "Up Next", Events page, PlayerPage decided/pending.
- */
 export function EventListItem({
   event,
   index = 0,

@@ -10,17 +10,24 @@ interface State {
   error: Error | null;
 }
 
-/** Best-effort — never throws. Keeps failures invisible to the user. */
+// Cap reports per session to avoid flooding the endpoint on render loops.
+const MAX_REPORTS = 5;
+let reportCount = 0;
+const reportedSignatures = new Set<string>();
+
 function reportToServer(entry: Record<string, unknown>) {
+  if (reportCount >= MAX_REPORTS) return;
+  const sig = `${entry.message}|${entry.stack ?? ""}`;
+  if (reportedSignatures.has(sig)) return;
+  reportedSignatures.add(sig);
+  reportCount += 1;
   try {
     fetch("/api/log-error", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entry),
       keepalive: true,
-    }).catch(() => {
-      /* swallow */
-    });
+    }).catch(() => {});
   } catch {
     /* swallow */
   }

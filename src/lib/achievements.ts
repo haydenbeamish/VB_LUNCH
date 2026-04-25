@@ -31,16 +31,11 @@ export interface Achievement {
 interface ComputeInput {
   predictions: Prediction[];
   leaderboardEntry?: EnhancedLeaderboardEntry;
-  /** Total leaderboard size, used to detect "spud_club" (last place). */
+  /** Used to detect spud_club (last place). */
   leaderboardSize?: number;
-  /** Total count of completed events in the season. */
   completedEvents: number;
 }
 
-/**
- * Pure function: given a player's predictions and leaderboard context,
- * return all achievements they've earned.
- */
 export function computeAchievements({
   predictions,
   leaderboardEntry,
@@ -218,44 +213,49 @@ export function computeAchievements({
   return out;
 }
 
-/**
- * Cross-player pass — adds achievements that depend on what other players did,
- * e.g. "lone_genius" (only correct pick on an event with 3+ entries).
- */
 export function annotateCrossPlayerAchievements(
   achievements: Achievement[],
   predictions: Prediction[],
   allPredictions: Prediction[],
 ): Achievement[] {
-  const out = [...achievements];
-  const playerWins = predictions.filter((p) => isCorrect(p.is_correct));
+  const playerWinEventIds = new Set<number>();
+  for (const p of predictions) {
+    if (isCorrect(p.is_correct)) playerWinEventIds.add(Number(p.event_id));
+  }
+  if (playerWinEventIds.size === 0) return achievements;
 
-  for (const win of playerWins) {
-    const eventPreds = allPredictions.filter(
-      (p) =>
-        Number(p.event_id) === Number(win.event_id) &&
-        (p.is_correct === true || p.is_correct === false),
-    );
-    const correctOnEvent = eventPreds.filter((p) => isCorrect(p.is_correct));
-    if (correctOnEvent.length === 1 && eventPreds.length >= 3) {
-      out.push({
-        id: "lone_genius",
-        label: "Lone Genius",
-        description: "The only one to nail a pick everyone else missed.",
-        tone: "violet",
-      });
-      break;
-    }
+  const eventStats = new Map<number, { decided: number; correct: number }>();
+  for (const p of allPredictions) {
+    if (!isCorrect(p.is_correct) && !isIncorrect(p.is_correct)) continue;
+    const eid = Number(p.event_id);
+    if (!playerWinEventIds.has(eid)) continue;
+    const entry = eventStats.get(eid) ?? { decided: 0, correct: 0 };
+    entry.decided += 1;
+    if (isCorrect(p.is_correct)) entry.correct += 1;
+    eventStats.set(eid, entry);
   }
 
-  return out;
+  for (const stats of eventStats.values()) {
+    if (stats.correct === 1 && stats.decided >= 3) {
+      return [
+        ...achievements,
+        {
+          id: "lone_genius",
+          label: "Lone Genius",
+          description: "The only one to nail a pick everyone else missed.",
+          tone: "violet",
+        },
+      ];
+    }
+  }
+  return achievements;
 }
 
 export const TONE_CLASSES: Record<
   Achievement["tone"],
   { bg: string; text: string; border: string }
 > = {
-  gold: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200/60" },
+  gold: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200/60" },
   emerald: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200/60" },
   sky: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200/60" },
   violet: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200/60" },

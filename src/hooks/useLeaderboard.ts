@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { LeaderboardEntry } from "../types";
-import { getLeaderboard, getResults } from "../data/api";
+import type { LeaderboardEntry, Prediction } from "../types";
+import { getLeaderboard } from "../data/api";
+import { isCorrect, isIncorrect } from "../lib/predictions";
 import { LUNCH_CONTRIBUTIONS } from "../lib/feed/index";
+import { useResults } from "./useResults";
 
 export type FormResult = "W" | "L";
 
@@ -12,30 +15,29 @@ export interface EnhancedLeaderboardEntry extends LeaderboardEntry {
   form: FormResult[];
 }
 
-async function fetchLeaderboardData(): Promise<EnhancedLeaderboardEntry[]> {
-  const [leaderboard, results] = await Promise.all([getLeaderboard(), getResults()]);
-  const allPredictions = results.predictions ?? [];
-
+function enhanceLeaderboard(
+  leaderboard: LeaderboardEntry[],
+  allPredictions: Prediction[],
+): EnhancedLeaderboardEntry[] {
   const decidedByPlayer: Record<number, { correct: number; decided: number }> = {};
-  const decidedPredsByPlayer: Record<number, { event_id: number; is_correct: boolean }[]> = {};
+  const decidedPredsByPlayer: Record<number, { event_id: number; won: boolean }[]> = {};
 
   for (const pred of allPredictions) {
-    if (pred.is_correct !== null && pred.is_correct !== undefined) {
-      if (!decidedByPlayer[pred.participant_id]) {
-        decidedByPlayer[pred.participant_id] = { correct: 0, decided: 0 };
-      }
-      decidedByPlayer[pred.participant_id].decided++;
-      if (pred.is_correct === true) {
-        decidedByPlayer[pred.participant_id].correct++;
-      }
-      if (!decidedPredsByPlayer[pred.participant_id]) {
-        decidedPredsByPlayer[pred.participant_id] = [];
-      }
-      decidedPredsByPlayer[pred.participant_id].push({
-        event_id: pred.event_id,
-        is_correct: pred.is_correct === true,
-      });
+    const won = isCorrect(pred.is_correct);
+    const lost = isIncorrect(pred.is_correct);
+    if (!won && !lost) continue;
+    if (!decidedByPlayer[pred.participant_id]) {
+      decidedByPlayer[pred.participant_id] = { correct: 0, decided: 0 };
     }
+    decidedByPlayer[pred.participant_id].decided++;
+    if (won) decidedByPlayer[pred.participant_id].correct++;
+    if (!decidedPredsByPlayer[pred.participant_id]) {
+      decidedPredsByPlayer[pred.participant_id] = [];
+    }
+    decidedPredsByPlayer[pred.participant_id].push({
+      event_id: pred.event_id,
+      won,
+    });
   }
 
   for (const preds of Object.values(decidedPredsByPlayer)) {
@@ -47,7 +49,7 @@ async function fetchLeaderboardData(): Promise<EnhancedLeaderboardEntry[]> {
     const decided = stats?.decided ?? 0;
     const correct = stats?.correct ?? entry.correct_predictions;
     const playerPreds = decidedPredsByPlayer[entry.id] ?? [];
-    const form: FormResult[] = playerPreds.slice(0, 5).map((p) => (p.is_correct ? "W" : "L"));
+    const form: FormResult[] = playerPreds.slice(0, 5).map((p) => (p.won ? "W" : "L"));
     return {
       ...entry,
       decided_predictions: decided,
@@ -61,31 +63,44 @@ async function fetchLeaderboardData(): Promise<EnhancedLeaderboardEntry[]> {
   enhanced.forEach((entry, index) => {
     entry.rank = index + 1;
     const lunchEntry = LUNCH_CONTRIBUTIONS.find((lc) => lc.position === index + 1);
-    entry.penalty = lunchEntry?.contribution ?? LUNCH_CONTRIBUTIONS[LUNCH_CONTRIBUTIONS.length - 1].contribution;
+    entry.penalty =
+      lunchEntry?.contribution ??
+      LUNCH_CONTRIBUTIONS[LUNCH_CONTRIBUTIONS.length - 1].contribution;
   });
 
   return enhanced;
 }
 
 export function useLeaderboard() {
-  const { data: entries = [], isLoading: loading, error, refetch } = useQuery({
+  const lbQuery = useQuery({
     queryKey: ["leaderboard"],
-    queryFn: fetchLeaderboardData,
+    queryFn: getLeaderboard,
   });
+  const resultsQuery = useResults();
 
-  const spud = (() => {
+  const entries = useMemo(() => {
+    if (!lbQuery.data) return [] as EnhancedLeaderboardEntry[];
+    return enhanceLeaderboard(lbQuery.data, resultsQuery.data?.predictions ?? []);
+  }, [lbQuery.data, resultsQuery.data]);
+
+  const spud = useMemo(() => {
     if (entries.length < 2) return null;
     const last = entries[entries.length - 1];
     const secondLast = entries[entries.length - 2];
-    if (last.total_points < secondLast.total_points) return last;
-    return null;
-  })();
+    return last.total_points < secondLast.total_points ? last : null;
+  }, [entries]);
+
+  const loading = lbQuery.isLoading || resultsQuery.isLoading;
+  const error = lbQuery.error || resultsQuery.error;
 
   return {
     entries,
     spud,
     loading,
     error: error ? (error instanceof Error ? error.message : String(error)) : null,
-    retry: () => { refetch(); },
+    retry: () => {
+      lbQuery.refetch();
+      resultsQuery.refetch();
+    },
   };
 }

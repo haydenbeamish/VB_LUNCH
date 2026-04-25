@@ -12,10 +12,6 @@ interface ClickableRowProps extends MotionDivProps {
   disabled?: boolean;
 }
 
-/**
- * Keyboard- and pointer-accessible clickable row.
- * Centralises role="button" + tabIndex=0 + Enter/Space + focus-ring.
- */
 export const ClickableRow = forwardRef<HTMLDivElement, ClickableRowProps>(
   function ClickableRow(
     { onActivate, ariaLabel, children, className, disabled, ...rest },

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { getResults, getLeaderboard, getEvents, getFeed } from "../data/api";
 import { generateNewsFeed, type FeedItem } from "../lib/newsfeed";
 import { normalizeBackendFeedItem } from "../lib/feed/normalize";
@@ -71,11 +71,12 @@ interface FeedBuildResult {
 
 async function fetchAndBuildFeed(
   options: BuildFeedOptions,
+  queryClient: QueryClient,
 ): Promise<FeedBuildResult> {
   const [results, lb, allEvents, backendFeedRaw] = await Promise.all([
-    getResults(),
-    getLeaderboard(),
-    getEvents(),
+    queryClient.fetchQuery({ queryKey: ["results"], queryFn: getResults }),
+    queryClient.fetchQuery({ queryKey: ["leaderboard"], queryFn: getLeaderboard }),
+    queryClient.fetchQuery({ queryKey: ["events"], queryFn: () => getEvents() }),
     getFeed({ limit: 100 }).catch(() => [] as unknown[]),
   ]);
 
@@ -167,63 +168,70 @@ async function fetchAndBuildFeed(
   };
 }
 
-/**
- * Shared hook factory powering both Dashboard ("results-first, 50, interleaved")
- * and the full News page ("chronological, 100").
- */
 export function buildNewsFeedHook(
   queryKey: string,
   options: BuildFeedOptions,
 ) {
   return function useFeedHook() {
-    const [enhancedFeed, setEnhancedFeed] = useState<FeedItem[] | null>(null);
-    const [banterKey, setBanterKey] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+    const [enhancedFeed, setEnhancedFeed] = useState<{
+      key: string;
+      items: FeedItem[];
+    } | null>(null);
+    const enhancingKey = useRef<string | null>(null);
 
     const { data, isLoading: loading, error, refetch } = useQuery({
       queryKey: [queryKey],
-      queryFn: () => fetchAndBuildFeed(options),
+      queryFn: () => fetchAndBuildFeed(options, queryClient),
     });
 
-    const dataKey = data?.feedItems.map((f) => f.id).join(",") ?? null;
+    const dataKey = useMemo(
+      () => data?.feedItems.map((f) => f.id).join(",") ?? null,
+      [data?.feedItems],
+    );
 
     useEffect(() => {
-      if (dataKey !== banterKey) setEnhancedFeed(null);
-    }, [dataKey, banterKey]);
+      if (
+        !data?.feedItems.length ||
+        !dataKey ||
+        enhancedFeed?.key === dataKey ||
+        enhancingKey.current === dataKey
+      ) {
+        return;
+      }
 
-    useEffect(() => {
-      if (!data?.feedItems.length || dataKey === banterKey) return;
-
+      enhancingKey.current = dataKey;
       let cancelled = false;
       const toEnhance = data.feedItems.slice(0, 25);
 
       enhanceBanter(toEnhance).then((enhanced) => {
         if (cancelled) return;
         if (enhanced && enhanced.length === toEnhance.length) {
-          const merged = mergeBanterIntoFeed(
-            data.feedItems,
-            toEnhance,
-            enhanced,
-          );
-          setEnhancedFeed(merged);
-          setBanterKey(dataKey);
+          setEnhancedFeed({
+            key: dataKey,
+            items: mergeBanterIntoFeed(data.feedItems, toEnhance, enhanced),
+          });
         }
       });
 
       return () => {
         cancelled = true;
       };
-    }, [data, dataKey, banterKey]);
+    }, [data, dataKey, enhancedFeed?.key]);
 
-    const hasData = Boolean(data);
+    const feed =
+      enhancedFeed && enhancedFeed.key === dataKey
+        ? enhancedFeed.items
+        : data?.feedItems ?? [];
     const errorMessage =
-      !hasData && error
+      !data && error
         ? error instanceof Error
           ? error.message
           : String(error)
         : null;
 
     return {
-      feed: enhancedFeed ?? data?.feedItems ?? [],
+      feed,
       leaderboard: data?.leaderboard ?? [],
       events: data?.events ?? [],
       loading,

@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, X, Clock, Sparkles, RefreshCw, Users, Flame } from "lucide-react";
 import { useEvent } from "../hooks/useEvent";
+import { isCorrect, isIncorrect } from "../lib/predictions";
 import { SportIcon } from "../components/ui/SportIcon";
 import { StatusPill } from "../components/ui/StatusPill";
 import { Avatar } from "../components/ui/Avatar";
@@ -41,11 +42,16 @@ function groupPredictions(predictions: Array<{
 
   for (const pred of predictions) {
     const key = pred.prediction.toLowerCase().trim();
+    const correctness = isCorrect(pred.is_correct)
+      ? true
+      : isIncorrect(pred.is_correct)
+      ? false
+      : null;
     if (!groups[key]) {
       groups[key] = {
         answer: pred.prediction,
         predictions: [],
-        isCorrect: pred.is_correct,
+        isCorrect: correctness,
         isOutlier: false,
         percentage: 0,
         isMostPicked: false,
@@ -114,7 +120,7 @@ export function EventDetailPage() {
   const isDecided = event.status === "completed";
 
   const predictions = event.predictions ?? [];
-  const correctCount = predictions.filter((p) => p.is_correct === true).length;
+  const correctCount = predictions.filter((p) => isCorrect(p.is_correct)).length;
   const groups = groupPredictions(predictions);
   const uniqueAnswers = groups.length;
 
@@ -286,9 +292,9 @@ export function EventDetailPage() {
                       {isDecided && (
                         <div className={cn(
                           "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-                          pred.is_correct ? "bg-emerald-100" : "bg-red-100",
+                          isCorrect(pred.is_correct) ? "bg-emerald-100" : "bg-red-100",
                         )}>
-                          {pred.is_correct ? (
+                          {isCorrect(pred.is_correct) ? (
                             <Check size={12} className="text-emerald-600" />
                           ) : (
                             <X size={12} className="text-red-400" />
