@@ -120,12 +120,6 @@ function normalizeEvent(e: Record<string, unknown>): CompetitionEvent {
     status: (e.status as CompetitionEvent["status"]) ?? "upcoming",
     display_order: Number(e.event_number ?? e.display_order ?? e.id),
     created_at: e.created_at as string | undefined,
-    // Odds fields — populated by backend cron from The Odds API
-    favourite: (e.favourite as string) ?? null,
-    favourite_odds: e.favourite_odds != null ? Number(e.favourite_odds) : null,
-    underdog: (e.underdog as string) ?? null,
-    underdog_odds: e.underdog_odds != null ? Number(e.underdog_odds) : null,
-    odds_last_updated: (e.odds_last_updated as string) ?? null,
   };
 }
 
@@ -147,11 +141,6 @@ function buildEventWithPredictions(raw: Record<string, unknown>): EventWithPredi
     status: (raw.status as CompetitionEvent["status"]) ?? "upcoming",
     display_order: Number(raw.event_number ?? raw.display_order ?? raw.id),
     created_at: raw.created_at as string | undefined,
-    favourite: (raw.favourite as string) ?? null,
-    favourite_odds: raw.favourite_odds != null ? Number(raw.favourite_odds) : null,
-    underdog: (raw.underdog as string) ?? null,
-    underdog_odds: raw.underdog_odds != null ? Number(raw.underdog_odds) : null,
-    odds_last_updated: (raw.odds_last_updated as string) ?? null,
     predictions: Array.isArray(raw.predictions) ? raw.predictions : [],
   };
 }
@@ -209,11 +198,6 @@ export async function getParticipant(id: number): Promise<{
     return { participant, predictions, total_points };
   }
   return data as { participant: Participant; predictions: Prediction[]; total_points: number };
-}
-
-/** Raw /results response — preserves predictions keyed by participant name (for the grid view). */
-export async function getResultsGrid(): Promise<Record<string, unknown>> {
-  return fetchJson<Record<string, unknown>>("/results");
 }
 
 export async function getResults(): Promise<{

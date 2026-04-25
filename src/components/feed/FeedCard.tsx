@@ -9,9 +9,6 @@ import {
   Eye,
   Swords,
   Lightbulb,
-  BarChart3,
-  ArrowRightLeft,
-  Ticket,
   Coins,
   Users,
   Crown,
@@ -20,7 +17,6 @@ import {
   MessageSquare,
   ArrowUpCircle,
   Skull,
-  Zap,
   Percent,
   CreditCard,
   Bell,
@@ -72,21 +68,6 @@ const TYPE_CONFIG: Record<
     accent: "text-sky-600",
     stripe: "bg-sky-500",
   },
-  odds_alert: {
-    icon: BarChart3,
-    accent: "text-blue-600",
-    stripe: "bg-blue-500",
-  },
-  contrarian_pick: {
-    icon: ArrowRightLeft,
-    accent: "text-fuchsia-600",
-    stripe: "bg-fuchsia-500",
-  },
-  underdog_backer: {
-    icon: Ticket,
-    accent: "text-teal-600",
-    stripe: "bg-teal-500",
-  },
   winners_list: {
     icon: Coins,
     accent: "text-yellow-600",
@@ -117,11 +98,6 @@ const TYPE_CONFIG: Record<
     accent: "text-emerald-600",
     stripe: "bg-emerald-500",
   },
-  pre_event_odds: {
-    icon: BarChart3,
-    accent: "text-blue-600",
-    stripe: "bg-blue-500",
-  },
   new_leader: {
     icon: ArrowUpCircle,
     accent: "text-amber-600",
@@ -131,11 +107,6 @@ const TYPE_CONFIG: Record<
     icon: Skull,
     accent: "text-red-600",
     stripe: "bg-red-500",
-  },
-  upset_alert: {
-    icon: Zap,
-    accent: "text-orange-600",
-    stripe: "bg-orange-500",
   },
   accuracy_check: {
     icon: Percent,
@@ -166,19 +137,14 @@ const TYPE_LABELS: Record<string, string> = {
   outlier_alert: "Outlier Alert",
   close_race: "Close Race",
   hot_take: "Hot Take",
-  odds_alert: "Odds",
-  contrarian_pick: "Group vs Bookies",
-  underdog_backer: "Underdog Pick",
   winners_list: "Winners & Losers",
   group_consensus: "Group Consensus",
   leader_banter: "Leaderboard",
   last_place_banter: "Last Place",
   pick_summary: "Pick Summary",
   result_commentary: "Commentary",
-  pre_event_odds: "Pre-Event Odds",
   new_leader: "New Leader",
   new_spud: "New Spud",
-  upset_alert: "Upset Alert",
   accuracy_check: "Accuracy",
   lunch_liability: "Lunch Liability",
   picks_open: "Picks Open",
@@ -251,7 +217,6 @@ export function FeedCard({ item, index }: FeedCardProps) {
               {item.subtext}
             </p>
           )}
-          {item.odds && <OddsDisplay odds={item.odds} />}
           {item.picks && item.picks.total > 0 && (
             <PicksDisplay picks={item.picks} />
           )}
@@ -280,13 +245,13 @@ function PicksDisplay({ picks }: { picks: NonNullable<FeedItem["picks"]> }) {
               <span
                 className={cn(
                   "text-[12px] font-semibold truncate",
-                  opt.isFavourite ? "text-emerald-700" : "text-zinc-700"
+                  opt.isCorrect ? "text-emerald-700" : "text-zinc-700"
                 )}
               >
                 {opt.label}
-                {opt.isFavourite && (
+                {opt.isCorrect && (
                   <span className="ml-1 text-[10px] text-emerald-500 font-normal">
-                    (fav)
+                    (correct)
                   </span>
                 )}
               </span>
@@ -298,7 +263,7 @@ function PicksDisplay({ picks }: { picks: NonNullable<FeedItem["picks"]> }) {
               <div
                 className={cn(
                   "rounded-full transition-all",
-                  opt.isFavourite ? "bg-emerald-500" : "bg-blue-500"
+                  opt.isCorrect ? "bg-emerald-500" : "bg-blue-500"
                 )}
                 style={{ width: `${pct}%` }}
               />
@@ -313,50 +278,3 @@ function PicksDisplay({ picks }: { picks: NonNullable<FeedItem["picks"]> }) {
   );
 }
 
-function OddsDisplay({ odds }: { odds: NonNullable<FeedItem["odds"]> }) {
-  // Implied probability: 1/odds, then normalise so bar sums to 100%
-  const favImplied = 1 / odds.favouriteOdds;
-  const undImplied = odds.underdogOdds ? 1 / odds.underdogOdds : 0;
-  const total = favImplied + undImplied;
-  const favPct = total > 0 ? Math.round((favImplied / total) * 100) : 100;
-  const undPct = 100 - favPct;
-
-  return (
-    <div className="mt-1.5 space-y-1.5">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[12px] font-semibold text-emerald-700 truncate">
-              {odds.favourite}
-            </span>
-            <span className="text-[12px] font-bold tabular-nums text-emerald-700">
-              ${odds.favouriteOdds.toFixed(2)}
-            </span>
-          </div>
-          {odds.underdog && odds.underdogOdds != null && (
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-blue-600 truncate">
-                {odds.underdog}
-              </span>
-              <span className="text-[12px] font-bold tabular-nums text-blue-600">
-                ${odds.underdogOdds.toFixed(2)}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      {odds.underdog && odds.underdogOdds != null && (
-        <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-100">
-          <div
-            className="bg-emerald-500 rounded-l-full"
-            style={{ width: `${favPct}%` }}
-          />
-          <div
-            className="bg-blue-500 rounded-r-full"
-            style={{ width: `${undPct}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}

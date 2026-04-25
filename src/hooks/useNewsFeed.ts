@@ -4,80 +4,12 @@ import { getResults, getLeaderboard, getEvents, getFeed } from "../data/api";
 import { generateNewsFeed, type FeedItem } from "../lib/newsfeed";
 import { normalizeBackendFeedItem } from "../lib/feed/normalize";
 import { enhanceBanter } from "../data/ai";
-import type { LeaderboardEntry, CompetitionEvent, Prediction, Participant } from "../types";
+import type { LeaderboardEntry, CompetitionEvent } from "../types";
 
 interface NewsFeedData {
   feedItems: FeedItem[];
   leaderboard: LeaderboardEntry[];
   events: CompetitionEvent[];
-}
-
-/**
- * Enrich a backend feed item with structured odds & picks data
- * when the item references an event that has odds and predictions.
- */
-function enrichFeedItemWithOddsAndPicks(
-  item: FeedItem,
-  events: CompetitionEvent[],
-  predictions: Prediction[],
-  participants: Participant[]
-): FeedItem {
-  // Only enrich odds-related types that are missing structured data
-  const ODDS_TYPES = new Set(["odds_alert", "contrarian_pick", "underdog_backer", "pre_event_odds", "picks_open"]);
-  if (!ODDS_TYPES.has(item.type)) return item;
-  if (!item.eventId) return item;
-
-  const event = events.find((e) => Number(e.id) === Number(item.eventId));
-  if (!event || !event.favourite || !event.favourite_odds) return item;
-
-  const enriched = { ...item };
-
-  // Add odds if missing
-  if (!enriched.odds) {
-    enriched.odds = {
-      favourite: event.favourite,
-      favouriteOdds: event.favourite_odds,
-      underdog: event.underdog ?? undefined,
-      underdogOdds: event.underdog_odds ?? undefined,
-    };
-  }
-
-  // Add picks if missing
-  if (!enriched.picks) {
-    const eventPreds = predictions.filter(
-      (p) => Number(p.event_id) === Number(event.id)
-    );
-    if (eventPreds.length > 0) {
-      const participantMap = new Map(
-        participants.map((p) => [Number(p.id), p.name])
-      );
-      const groups: Record<string, { label: string; names: string[] }> = {};
-      for (const pred of eventPreds) {
-        const key = pred.prediction.toLowerCase().trim();
-        if (!groups[key]) {
-          groups[key] = { label: pred.prediction.trim(), names: [] };
-        }
-        const name =
-          participantMap.get(Number(pred.participant_id)) ??
-          pred.participant_name ??
-          "Unknown";
-        groups[key].names.push(name);
-      }
-      const favouriteKey = event.favourite.toLowerCase().trim();
-      const options = Object.entries(groups)
-        .map(([key, { label, names }]) => ({
-          label,
-          count: names.length,
-          names,
-          isFavourite: key === favouriteKey,
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      enriched.picks = { options, total: eventPreds.length };
-    }
-  }
-
-  return enriched;
 }
 
 async function fetchNewsFeedData(): Promise<NewsFeedData> {
@@ -90,24 +22,23 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
 
   const allPredictions = results.predictions ?? [];
 
-  // Merge results events with all events (deduped by id) so upcoming events
-  // that carry odds data are included in odds-based feed items.
   const resultsEventIds = new Set((results.events ?? []).map((e) => e.id));
   const mergedEvents = [
     ...(results.events ?? []),
     ...allEvents.filter((e) => !resultsEventIds.has(e.id)),
   ];
 
-  // Normalise backend feed items into our FeedItem shape, filtering out
-  // boring types that clog the feed (plain pick summaries, consensus)
   const BORING_TYPES = new Set([
     "pick_summary",
     "group_consensus",
     "pre_event_odds",
     "odds_vs_picks",
+    "odds_alert",
+    "contrarian_pick",
+    "underdog_backer",
+    "upset_alert",
   ]);
 
-  // Headlines that indicate admin/validation items or generic placeholders, not real news
   const BORING_HEADLINE_PREFIXES = ["Date Check", "Odds vs picks:"];
 
   const backendItems = backendFeedRaw
@@ -116,12 +47,8 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
       item !== null &&
       !BORING_TYPES.has(item.type) &&
       !BORING_HEADLINE_PREFIXES.some((prefix) => item.headline.startsWith(prefix))
-    )
-    .map((item) =>
-      enrichFeedItemWithOddsAndPicks(item, mergedEvents, allPredictions, results.participants ?? [])
     );
 
-  // Generate client-side feed items as supplement
   const clientItems = generateNewsFeed(
     mergedEvents,
     results.participants ?? [],
@@ -129,41 +56,27 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
     lb
   );
 
-  // Merge: backend items take priority, deduplicate by matching type+eventId or type+playerId
-  const backendKeys = new Set(
-    backendItems.map((item) => feedItemKey(item))
-  );
-
+  const backendKeys = new Set(backendItems.map((item) => feedItemKey(item)));
   const uniqueClientItems = clientItems.filter(
     (item) => !backendKeys.has(feedItemKey(item))
   );
 
   const combined = [...backendItems, ...uniqueClientItems];
 
-  // Remove odds/contrarian/underdog items for events that are already completed
-  // — these are stale pre-event analysis cards that no longer matter
+  // Drop stale picks_open nudges for events that are already completed
   const completedEventIds = new Set(
     mergedEvents
       .filter((e) => e.status === "completed")
       .map((e) => Number(e.id))
   );
-  const STALE_WHEN_COMPLETED = new Set([
-    "odds_alert",
-    "contrarian_pick",
-    "underdog_backer",
-    "picks_open",
-  ]);
   const filtered = combined.filter((item) => {
     if (!item.eventId) return true;
-    if (!STALE_WHEN_COMPLETED.has(item.type)) return true;
+    if (item.type !== "picks_open") return true;
     return !completedEventIds.has(Number(item.eventId));
   });
 
-  // Sort: event results first (they're the most interesting), then by
-  // timestamp (newest first), then priority as tiebreaker
-  const RESULT_TYPES = new Set(["event_result", "perfect_pick", "everyone_wrong", "upset_alert"]);
+  const RESULT_TYPES = new Set(["event_result", "perfect_pick", "everyone_wrong"]);
   filtered.sort((a, b) => {
-    // Boost result-related items above everything else
     const aIsResult = RESULT_TYPES.has(a.type) ? 1 : 0;
     const bIsResult = RESULT_TYPES.has(b.type) ? 1 : 0;
     if (aIsResult !== bIsResult) return bIsResult - aIsResult;
@@ -176,8 +89,6 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
     return b.priority - a.priority;
   });
 
-  // Cap per type — prevent any single category from dominating the feed
-  // Result types are uncapped so every completed event shows its result
   const UNCAPPED_TYPES = new Set(["event_result"]);
   const MAX_PER_TYPE = 3;
   const typeCounts: Record<string, number> = {};
@@ -189,9 +100,7 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
     return true;
   });
 
-  // Interleave: avoid runs of 3+ cards of the same type back-to-back.
-  // Walk the sorted list; when we see a third consecutive same-type item,
-  // swap it with the next different-type item found later in the list.
+  // Avoid runs of 3+ same-type cards back-to-back
   for (let i = 2; i < capped.length; i++) {
     if (capped[i].type === capped[i - 1].type && capped[i].type === capped[i - 2].type) {
       const swapIdx = capped.findIndex((item, j) => j > i && item.type !== capped[i].type);
@@ -201,7 +110,6 @@ async function fetchNewsFeedData(): Promise<NewsFeedData> {
     }
   }
 
-  // Cap the feed — show plenty of items but not infinite
   const MAX_FEED_ITEMS = 50;
 
   return { feedItems: capped.slice(0, MAX_FEED_ITEMS), leaderboard: lb, events: allEvents };
@@ -233,19 +141,15 @@ export function useNewsFeed() {
     if (!data?.feedItems.length || dataKey === banterKey) return;
 
     let cancelled = false;
-    // Skip odds_alert from AI enhancement — they render structured odds data, not text
-    const toEnhance = data.feedItems.filter((f) => f.type !== "odds_alert").slice(0, 25);
+    const toEnhance = data.feedItems.slice(0, 25);
 
     enhanceBanter(toEnhance).then((enhanced) => {
       if (cancelled) return;
       if (enhanced && enhanced.length === toEnhance.length) {
-        let enhIdx = 0;
-        const merged = data.feedItems.map((item) => {
-          if (item.type === "odds_alert") return item;
-          if (enhIdx < enhanced.length && enhanced[enhIdx]?.headline && enhanced[enhIdx]?.subtext) {
-            return { ...item, headline: enhanced[enhIdx].headline, subtext: enhanced[enhIdx++].subtext };
+        const merged = data.feedItems.map((item, idx) => {
+          if (idx < enhanced.length && enhanced[idx]?.headline && enhanced[idx]?.subtext) {
+            return { ...item, headline: enhanced[idx].headline, subtext: enhanced[idx].subtext };
           }
-          enhIdx++;
           return item;
         });
         setEnhancedFeed(merged);

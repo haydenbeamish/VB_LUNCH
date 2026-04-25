@@ -215,12 +215,18 @@ function EventResultCard({
             <span
               className={cn(
                 "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full",
-                event.status === "in_progress"
+                event.status === "completed"
+                  ? "bg-rose-100 text-rose-700"
+                  : event.status === "in_progress"
                   ? "bg-amber-100 text-amber-700"
                   : "bg-zinc-100 text-zinc-500"
               )}
             >
-              {event.status === "in_progress" ? "Live" : "Upcoming"}
+              {event.status === "completed"
+                ? "Needs Result"
+                : event.status === "in_progress"
+                ? "Live"
+                : "Upcoming"}
             </span>
           </div>
           <p className="text-sm font-medium text-zinc-800 mt-0.5 line-clamp-2">
@@ -369,7 +375,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const handleEventSaved = useCallback(() => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-    queryClient.invalidateQueries({ queryKey: ["results-grid"] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
   }, [refetch, queryClient]);
 
@@ -390,12 +395,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     );
   }
 
+  // "Pending" = anything still needing a result (upcoming, live, OR completed-but-no-answer)
   const pendingEvents = events
-    .filter((e) => e.status !== "completed")
+    .filter((e) => e.status !== "completed" || !e.correct_answer)
     .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
 
   const completedEvents = events
-    .filter((e) => e.status === "completed")
+    .filter((e) => e.status === "completed" && e.correct_answer)
     .sort((a, b) => (b.display_order ?? 0) - (a.display_order ?? 0));
 
   return (

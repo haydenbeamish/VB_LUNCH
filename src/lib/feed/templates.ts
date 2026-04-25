@@ -116,36 +116,6 @@ export const CLOSE_RACE_TEMPLATES = [
   }),
 ];
 
-export const CONTRARIAN_PICK_TEMPLATES = [
-  (event: string, favourite: string, favOdds: string, popularPick: string, pctGroup: number) => ({
-    headline: `${pctGroup}% of you are backing "${popularPick}" on ${event}`,
-    subtext: `Bookies have ${favourite} at ${favOdds}. One side is going to look very stupid.`,
-  }),
-  (event: string, favourite: string, favOdds: string, popularPick: string, pctGroup: number) => ({
-    headline: `Bookies vs the group on ${event}`,
-    subtext: `${favourite} (${favOdds}) is the market pick but ${pctGroup}% of you went with "${popularPick}".`,
-  }),
-  (event: string, favourite: string, favOdds: string, popularPick: string, pctGroup: number) => ({
-    headline: `${event}: the group disagrees with the bookies`,
-    subtext: `${pctGroup}% backed "${popularPick}" over ${favourite} (${favOdds}). Brave or brain-dead?`,
-  }),
-];
-
-export const UNDERDOG_BACKER_TEMPLATES = [
-  (name: string, event: string, pick: string, odds: string) => ({
-    headline: `${name} is off their rocker on ${event}`,
-    subtext: `Backing "${pick}" at ${odds}. Either a visionary or a complete bloody lunatic.`,
-  }),
-  (name: string, event: string, pick: string, odds: string) => ({
-    headline: `${name} loves throwing money in the bin`,
-    subtext: `Picked "${pick}" (${odds}) for ${event}. That's the kind of pick that gets you sectioned.`,
-  }),
-  (name: string, event: string, pick: string, odds: string) => ({
-    headline: `Has ${name} been drinking?`,
-    subtext: `"${pick}" at ${odds} for ${event}. Either the ballsiest pick ever or the dumbest. No in between.`,
-  }),
-];
-
 export const WINNERS_LIST_TEMPLATES = [
   (event: string, winners: string, losers: string) => ({
     headline: `${event} — the bloodbath scorecard`,
@@ -233,21 +203,6 @@ export const NEW_SPUD_TEMPLATES = [
   (name: string, prevSpud: string) => ({
     headline: `${name} — congratulations, you useless spud`,
     subtext: `Officially dead last. ${prevSpud} sends their deepest thanks. Somebody hide ${name}'s credit card.`,
-  }),
-];
-
-export const UPSET_ALERT_TEMPLATES = [
-  (event: string, winner: string, favourite: string, favOdds: string) => ({
-    headline: `Upset! ${winner} rolled ${favourite} — ${event}`,
-    subtext: `The bookies had ${favourite} at ${favOdds}. The punters who called it are geniuses. The rest are fuming.`,
-  }),
-  (event: string, winner: string, favourite: string, favOdds: string) => ({
-    headline: `${favourite} (${favOdds}) just got pantsed`,
-    subtext: `${winner} wins ${event}. The bookies got it wrong and so did anyone dumb enough to follow them.`,
-  }),
-  (event: string, winner: string, favourite: string, _favOdds: string) => ({
-    headline: `${event}: the bookies are crying`,
-    subtext: `${winner} over ${favourite}. Absolute scenes. If you tipped the upset, take a bloody bow.`,
   }),
 ];
 
