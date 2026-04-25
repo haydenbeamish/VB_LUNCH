@@ -37,12 +37,6 @@ export interface CompetitionEvent {
   status: EventStatus;
   display_order: number;
   created_at?: string;
-  // Odds fields (nullable — populated by backend cron from The Odds API)
-  favourite?: string | null;
-  favourite_odds?: number | null;
-  underdog?: string | null;
-  underdog_odds?: number | null;
-  odds_last_updated?: string | null;
 }
 
 export interface Prediction {

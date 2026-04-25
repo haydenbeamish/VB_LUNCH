@@ -13,14 +13,12 @@ import {
   LAST_PLACE_BANTER_TEMPLATES,
   NEW_LEADER_TEMPLATES,
   NEW_SPUD_TEMPLATES,
-  UPSET_ALERT_TEMPLATES,
   ACCURACY_TEMPLATES,
   LUNCH_LIABILITY_TEMPLATES,
   PICKS_OPEN_TEMPLATES,
 } from "./templates";
 import { computeStreaks, STREAK_THRESHOLD } from "./streaks";
 import { findOutliers, MAX_OUTLIERS } from "./outliers";
-import { generateOddsFeedItems } from "./odds";
 
 export type { FeedItem, FeedItemType, BackendFeedItem } from "./types";
 export { normalizeBackendFeedItem } from "./normalize";
@@ -69,16 +67,6 @@ export function generateNewsFeed(
       preds.length
     );
 
-    // Attach odds data if the event had bookmaker odds
-    const odds = (event.favourite && event.favourite_odds)
-      ? {
-          favourite: event.favourite,
-          favouriteOdds: event.favourite_odds,
-          underdog: event.underdog ?? undefined,
-          underdogOdds: event.underdog_odds ?? undefined,
-        }
-      : undefined;
-
     // Build picks distribution showing who predicted what
     let picks: FeedItem["picks"];
     if (preds.length > 0) {
@@ -96,7 +84,7 @@ export function generateNewsFeed(
           label,
           count: names.length,
           names,
-          isFavourite: key === correctKey,
+          isCorrect: key === correctKey,
         }))
         .sort((a, b) => b.count - a.count);
       picks = { options, total: preds.length };
@@ -113,7 +101,6 @@ export function generateNewsFeed(
       sport: event.sport,
       timestamp: event.event_date ?? event.created_at,
       priority: 7,
-      odds,
       picks,
     });
 
@@ -163,33 +150,7 @@ export function generateNewsFeed(
 
   }
 
-  // 2. Upset alerts — bookmaker favourite lost
-  for (const event of completedEvents) {
-    if (!event.favourite || !event.favourite_odds) continue;
-    const favouriteKey = event.favourite.toLowerCase().trim();
-    const answerKey = event.correct_answer!.toLowerCase().trim();
-    if (favouriteKey === answerKey) continue;
-    // Only flag upsets where the favourite had short odds (was strongly favoured)
-    if (event.favourite_odds > 2.5) continue;
-
-    const favOdds = `$${event.favourite_odds.toFixed(2)}`;
-    const t = hashPick(UPSET_ALERT_TEMPLATES, `upset-${event.id}`);
-    const { headline, subtext } = t(event.event_name, event.correct_answer!, event.favourite, favOdds);
-    feed.push({
-      id: `upset-${event.id}`,
-      type: "upset_alert",
-      emoji: "\u{1F4A5}",
-      headline,
-      subtext,
-      eventId: event.id,
-      eventName: event.event_name,
-      sport: event.sport,
-      timestamp: event.event_date ?? event.created_at,
-      priority: 9,
-    });
-  }
-
-  // 3. Streaks per participant
+  // 2. Streaks per participant
   for (const participant of participants) {
     const { winStreak, loseStreak } = computeStreaks(
       participant.id,
@@ -228,7 +189,7 @@ export function generateNewsFeed(
     }
   }
 
-  // 4. Outlier alerts for upcoming events
+  // 3. Outlier alerts for upcoming events
   const outliers = findOutliers(events, allPredictions, participants);
   for (const outlier of outliers.slice(0, MAX_OUTLIERS)) {
     const uid = `${outlier.prediction.event_id}-${outlier.prediction.participant_id}`;
@@ -254,7 +215,7 @@ export function generateNewsFeed(
     });
   }
 
-  // 5. Close race at the top of the leaderboard
+  // 4. Close race at the top of the leaderboard
   if (leaderboard.length >= 2) {
     const first = leaderboard[0];
     const second = leaderboard[1];
@@ -274,7 +235,7 @@ export function generateNewsFeed(
     }
   }
 
-  // 6. Leader & last-place banter (fires when there are completed events)
+  // 5. Leader & last-place banter (fires when there are completed events)
   if (completedEvents.length > 0 && leaderboard.length >= 2) {
     const leader = leaderboard[0];
     const lastPlace = leaderboard[leaderboard.length - 1];
@@ -308,7 +269,7 @@ export function generateNewsFeed(
     });
   }
 
-  // 7. Lunch liability for mid-table players who owe significant amounts
+  // 6. Lunch liability for mid-table players who owe significant amounts
   if (completedEvents.length > 0 && leaderboard.length >= 6) {
     // Pick the person in the "danger zone" — high contribution but not last place
     // (last place already has dedicated banter above)
@@ -338,7 +299,7 @@ export function generateNewsFeed(
     }
   }
 
-  // 8. New leader / new spud detection
+  // 7. New leader / new spud detection
   if (completedEvents.length >= 2 && leaderboard.length >= 3) {
     const leader = leaderboard[0];
     const second = leaderboard[1];
@@ -380,7 +341,7 @@ export function generateNewsFeed(
     }
   }
 
-  // 9. Accuracy check — highlight the best and worst hit rates
+  // 8. Accuracy check — highlight the best and worst hit rates
   if (leaderboard.length >= 4 && completedEvents.length >= 3) {
     const withAccuracy = leaderboard
       .filter((e) => e.total_predictions >= 3)
@@ -426,10 +387,7 @@ export function generateNewsFeed(
     }
   }
 
-  // 10. Odds-based alerts
-  feed.push(...generateOddsFeedItems(events, allPredictions, participants));
-
-  // 11. Picks open — nudge for upcoming events with low participation
+  // 9. Picks open — nudge for upcoming events with low participation
   if (participants.length >= 3) {
     const upcomingEvents = events.filter((e) => e.status === "upcoming" || e.status === "in_progress");
     for (const event of upcomingEvents) {
@@ -450,14 +408,6 @@ export function generateNewsFeed(
           sport: event.sport,
           timestamp: event.event_date ?? event.close_date ?? undefined,
           priority: 8,
-          odds: event.favourite && event.favourite_odds
-            ? {
-                favourite: event.favourite,
-                favouriteOdds: event.favourite_odds,
-                underdog: event.underdog ?? undefined,
-                underdogOdds: event.underdog_odds ?? undefined,
-              }
-            : undefined,
         });
       }
     }

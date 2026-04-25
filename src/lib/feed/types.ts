@@ -7,19 +7,14 @@ export type FeedItemType =
   | "everyone_wrong"
   | "close_race"
   | "hot_take"
-  | "odds_alert"
-  | "contrarian_pick"
-  | "underdog_backer"
   | "winners_list"
   | "group_consensus"
   | "leader_banter"
   | "last_place_banter"
   | "pick_summary"
   | "result_commentary"
-  | "pre_event_odds"
   | "new_leader"
   | "new_spud"
-  | "upset_alert"
   | "accuracy_check"
   | "lunch_liability"
   | "picks_open";
@@ -37,20 +32,13 @@ export interface FeedItem {
   sport?: string;
   timestamp?: string;
   priority: number;
-  /** Structured odds data for visual rendering on odds_alert cards */
-  odds?: {
-    favourite: string;
-    favouriteOdds: number;
-    underdog?: string;
-    underdogOdds?: number;
-  };
-  /** Who picked what — for showing pick distribution alongside odds */
+  /** Pick distribution: who picked what for an event */
   picks?: {
     options: Array<{
       label: string;
       count: number;
       names: string[];
-      isFavourite?: boolean;
+      isCorrect?: boolean;
     }>;
     total: number;
   };

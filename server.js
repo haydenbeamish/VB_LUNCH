@@ -52,7 +52,7 @@ ${itemSummaries.join("\n")}`;
         "X-Title": "BOSF Punting Leaderboard",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
+        model: "x-ai/grok-4",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.9,
         max_tokens: 1500,
@@ -152,7 +152,7 @@ app.post("/api/ai/chat", async (req, res) => {
         "X-Title": "BOSF Punting Leaderboard",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
+        model: "x-ai/grok-4",
         messages: [
           {
             role: "system",
